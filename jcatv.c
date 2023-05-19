@@ -4,6 +4,8 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
+#define DEBUG 1
+
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,7 +185,9 @@ static INLINE void catv(const char *filename)
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
+#if DEBUG
 	printf("filename: %s\n", filename);
+#endif /* DEBUG */
 	char ln[4096];
 	int LN = 0;
 	while (fgets(ln, 4096, fp)) {
@@ -225,8 +229,6 @@ OUT:
 			break;                         \
 		}
 
-#define DEBUG 1
-
 static int findall(const char *dname, const size_t dlen)
 {
 	DIR *dp = opendir(dname);
@@ -261,7 +263,7 @@ static int findall(const char *dname, const size_t dlen)
 		}
 #endif /* _DIRENT_HAVE_D_TYPE */
 #ifdef DEBUG
-		printf("dir: %s\n", ep->d_name);
+		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
 	}
 	closedir(dp);
