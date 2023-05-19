@@ -11,4 +11,4 @@ else
 	echo 'gcc/clang not available'
 	return 1
 fi
-$compiler -O3 -flto $file.c -o $file
+$compiler -O3 -flto $file.c -o $file && echo "$file successfuly compiled!"

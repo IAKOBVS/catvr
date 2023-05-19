@@ -4,7 +4,7 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#define DEBUG 1
+#define DEBUG 0
 
 #include <dirent.h>
 #include <stdio.h>
