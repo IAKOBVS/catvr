@@ -55,7 +55,7 @@ static INLINE void catv(const char *filename)
 	while (fgets_unlocked(ln, MAX_LINE_LEN, fp)) {
 #else
 	while (fgets(ln, MAX_LINE_LEN, fp)) {
-#endif /* _GNU_SOURCE */
+#endif /* HAS_FGETS_UNLOCKED */
 		++NL;
 		for (char *lp = ln;; ++lp) {
 			switch (*lp) {
