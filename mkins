@@ -5,4 +5,4 @@ if [ ! -d $scripts_dir ]; then
 	return
 fi
 ./mk
-cp jcatv $scripts_dir && echo "jcatv successfuly copied to $scripts_dir"
+cp bin/jcatv $scripts_dir && echo "jcatv successfuly copied to $scripts_dir"

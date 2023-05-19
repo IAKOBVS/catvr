@@ -8,4 +8,4 @@ else
 	echo 'gcc/clang not available'
 	return 1
 fi
-$compiler -O3 -flto $file.c -o $file && echo "$file successfuly compiled!"
+$compiler -O3 -flto bin/$file.c -o bin/$file && echo "$file successfuly compiled!"
