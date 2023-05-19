@@ -4,13 +4,12 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#define DEBUG 0
-
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifdef _GNU_SOURCE
 #	define HAS_MEMMEM
@@ -157,9 +156,16 @@
 	case 126:
 
 enum {
+	DEBUG = 0,
 	MAX_LINE_LEN = 4096,
 	MAX_PATH_LEN = 4096,
+	MAX_BUF_SZ = 640000000,
 };
+
+char ln[MAX_LINE_LEN];
+struct stat fst;
+char *fbuf;
+int NL;
 
 static INLINE void append(char *fulpath, const char *dname, size_t dlen, const char *filename)
 {
@@ -185,16 +191,15 @@ static INLINE void catv(const char *filename)
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
-#if DEBUG
+#if DEBUG == 1
 	printf("filename: %s\n", filename);
 #endif /* DEBUG */
-	char ln[4096];
 	int LN = 0;
-	while (fgets(ln, 4096, fp)) {
+	while (fgets(ln, MAX_LINE_LEN, fp)) {
 		++LN;
 		for (char *lp = ln;; ++lp) {
 			switch (*lp) {
-			CASE_PRINTABLE
+				CASE_PRINTABLE
 			case '\t':
 				continue;
 			default:
@@ -209,14 +214,16 @@ OUT:
 	fclose(fp);
 }
 
+/* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DO(filename, action)               \
 	if (filename[0] == '.')                        \
 		switch (filename[1]) {                 \
 		case '.':                              \
 		case '\0':                             \
 			action;                        \
-		case 'i':                              \
-			if (filename[2] == 't')        \
+		case 'g':                              \
+			if (filename[2] == 'i'         \
+				&& filename[3] == 't') \
 				action;                \
 			break;                         \
 		case 'v':                              \
@@ -226,7 +233,6 @@ OUT:
 				&& filename[5] == 'd'  \
 				&& filename[6] == 'e') \
 				action;                \
-			break;                         \
 		}
 
 static int findall(const char *dname, const size_t dlen)
@@ -240,6 +246,9 @@ static int findall(const char *dname, const size_t dlen)
 	struct stat st;
 #endif /* _DIRENT_HAVE_D_TYPE */
 	while ((ep = readdir(dp))) {
+#if DEBUG == 1
+		puts(ep->d_name);
+#endif /* DEBUG */
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
@@ -262,7 +271,7 @@ static int findall(const char *dname, const size_t dlen)
 			findall(fulpath, appendp(fulpath, dname, dlen, ep->d_name) - fulpath);
 		}
 #endif /* _DIRENT_HAVE_D_TYPE */
-#ifdef DEBUG
+#if DEBUG == 1
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
 	}
@@ -272,13 +281,77 @@ static int findall(const char *dname, const size_t dlen)
 
 int main(int argc, char **argv)
 {
-	char *dname = argv[1];
 	size_t dlen;
+	char *dname = argv[1];
+	fbuf = malloc(MAX_BUF_SZ);
 	if (!argv[1]) {
-		dname = ".";
-		dlen = 1;
-	} else
+		char cwd[MAX_PATH_LEN];
+		dname = getcwd(cwd, MAX_PATH_LEN);
 		dlen = strlen(dname);
-	findall(dname, dlen);
+		findall(dname, dlen);
+	} else {
+		dlen = strlen(dname);
+		findall(dname, dlen);
+	}
 	return 0;
 }
+
+/* segfaults sometimes */
+
+/* static INLINE void print_lines(const char *filename) */
+/* { */
+/* 	FILE *fp = fopen(filename, "r"); */
+/* 	if (unlikely(!fp)) */
+/* 		return; */
+/* 	NL = 0; */
+/* 	while (fgets(fbuf, MAX_LINE_LEN, fp)) { */
+/* 		++NL; */
+/* 		for (char *lp = fbuf;; ++lp) { */
+/* 			switch (*lp) { */
+/* 			CASE_PRINTABLE */
+/* 			case '\t': */
+/* 				continue; */
+/* 			default: */
+/* 				goto OUT; */
+/* 			case '\n':; */
+/* 			} */
+/* 			break; */
+/* 		} */
+/* 		printf("%s:%d:%s", filename, NL, fbuf); */
+/* 	} */
+/* OUT: */
+/* 	fclose(fp); */
+/* } */
+
+/* static INLINE void catv_f(const char *filename) */
+/* { */
+/* 	if (unlikely(stat(filename, &fst))) */
+/* 		return; */
+/* 	const size_t file_size = fst.st_size; */
+/* 	if (unlikely(!file_size)) */
+/* 		return; */
+/* 	if (unlikely(file_size > MAX_BUF_SZ)) */
+/* 		print_lines(filename); */
+/* 	FILE *fp = fopen(filename, "r"); */
+/* 	if (unlikely(!fp)) */
+/* 		return; */
+/* 	fread(fbuf, 1, file_size, fp); */
+/* 	*(fbuf + file_size) = '\0'; */
+/* 	if (strlen(fbuf) == file_size) { */
+/* 		NL = 1; */
+/* 		printf("%s:%d", filename, NL); */
+/* 		for (char *p = fbuf;; ++p) { */
+/* 			switch (*p) { */
+/* 			case '\n': */
+/* 				printf("\n%s:%d:", filename, ++NL); */
+/* 				continue; */
+/* 			default: */
+/* 				putchar(*p); */
+/* 				continue; */
+/* 			case '\0':; */
+/* 			} */
+/* 			break; */
+/* 		} */
+/* 	} */
+/* 	fclose(fp); */
+/* } */
