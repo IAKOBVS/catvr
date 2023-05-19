@@ -1,0 +1,7 @@
+#!/bin/sh
+scripts_dir=$HOME/.local/bin/scripts
+if [ ! -d $scripts_dir ]; then
+	echo "$scripts_dir does not exist!"
+	return
+fi
+./mk && cp jcatv $scripts_dir
