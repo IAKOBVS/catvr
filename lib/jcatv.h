@@ -4,7 +4,7 @@
 #	define HAS_STRCASESTR
 #	define HAS_FGETS_UNLOCKED
 #elif defined(__GLIBC__)
-#	if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 1 && _POSIX_C_SOURCE >= 200809
+#	if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 10 && _POSIX_C_SOURCE >= 200809
 #		define HAS_STPCPY
 #	endif
 #endif /* HAS_MEMMEM, HAS_STPCPY */
