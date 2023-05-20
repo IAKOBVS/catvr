@@ -13,11 +13,12 @@
 #include "../lib/catvr.h"
 
 enum {
-	DEBUG = 0,
 	MAX_LINE_LEN = 4096,
 	MAX_PATH_LEN = 4096,
-	PRINT_PER_CHAR = 1
 };
+
+#define DEBUG 0
+#define PRINT_PER_CHAR 1
 
 #if !PRINT_PER_CHAR
 char ln[MAX_LINE_LEN];
@@ -63,7 +64,7 @@ static INLINE void catv(const char *filename)
 	printf("%s:0:", filename + fuldirlen + 1);
 	for (;;) {
 		switch (c = fgetc(fp)) {
-			CASE_PRINTABLE
+		default:
 		case '\t':
 			putchar(c);
 			continue;
@@ -71,6 +72,8 @@ static INLINE void catv(const char *filename)
 			putchar('\n');
 			printf("%s:%d:", filename + fuldirlen + 1, ++NL);
 			continue;
+		case '\0':
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL
 		case EOF:
 			putchar('\n');
 		}
@@ -85,20 +88,22 @@ static INLINE void catv(const char *filename)
 	if (unlikely(!fp))
 		return;
 	NL = 0;
-#if DEBUG
+#	if DEBUG
 	printf("filename: %s\n", filename);
-#endif /* DEBUG */
-#ifdef HAS_FGETS_UNLOCKED
+#	endif /* DEBUG */
+#	ifdef HAS_FGETS_UNLOCKED
 	while (fgets_unlocked(ln, MAX_LINE_LEN, fp)) {
-#else
+#	else
 	while (fgets(ln, MAX_LINE_LEN, fp)) {
-#endif /* HAS_FGETS_UNLOCKED */
+#	endif /* HAS_FGETS_UNLOCKED */
 		++NL;
 		for (char *lp = ln;; ++lp) {
 			switch (*lp) {
-				CASE_PRINTABLE
-			case '\t': continue;
-			default: goto OUT;
+			default:
+				continue;
+			case '\0':
+			CASE_UNPRINTABLE_WO_NUL_TAB_NL
+				goto OUT;
 			case '\n':;
 			}
 			break;
@@ -111,24 +116,24 @@ OUT:
 #endif
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action)               \
-	if (filename[0] == '.')                        \
-		switch (filename[1]) {                 \
-		case '.':                              \
-		case '\0':                             \
-			action;                        \
-		case 'g':                              \
-			if (filename[2] == 'i'         \
-				&& filename[3] == 't') \
-				action;                \
-			break;                         \
-		case 'v':                              \
-			if (filename[2] == 's'         \
-				&& filename[3] == 'c'  \
-				&& filename[4] == 'o'  \
-				&& filename[5] == 'd'  \
-				&& filename[6] == 'e') \
-				action;                \
+#define IF_EXCLUDED_DO(filename, action)       \
+	if (filename[0] == '.')                \
+		switch (filename[1]) {         \
+		case '.':                      \
+		case '\0':                     \
+			action;                \
+		case 'g':                      \
+			if (filename[2] == 'i' \
+			&& filename[3] == 't') \
+				action;        \
+			break;                 \
+		case 'v':                      \
+			if (filename[2] == 's' \
+			&& filename[3] == 'c'  \
+			&& filename[4] == 'o'  \
+			&& filename[5] == 'd'  \
+			&& filename[6] == 'e') \
+				action;        \
 		}
 
 static int findall(const char *dir, const size_t dlen)
