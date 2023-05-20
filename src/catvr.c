@@ -7,43 +7,30 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
-#include "../lib/catvr.h"
+#define DEBUG 0
+#define PRINT_PER_CHAR 1
 
 enum {
 	MAX_LINE_LEN = 4096,
 	MAX_PATH_LEN = 4096,
 };
 
-#define DEBUG 0
-#define PRINT_PER_CHAR 1
+int g_NL;
+size_t g_fuldirlen;
 
-#if !PRINT_PER_CHAR
-char ln[MAX_LINE_LEN];
-#endif /* PRINT_PER_CHAR */
-int NL;
-size_t fuldirlen;
-
-static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)
-{
-	memcpy(path, dir, dlen);
-	*(path += dlen) = '/';
-	memcpy(++path, filename, dlen + 1);
-}
-
-static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char *filename)
-{
-	memcpy(path, dir, dlen);
-	*(path += dlen) = '/';
-#ifdef HAS_STPCPY
-	return stpcpy(++path, filename);
+#if PRINT_PER_CHAR
+char g_c;
 #else
-	dlen = strlen(filename);
-	return (char *)memcpy(++path, filename, dlen + 1) + dlen;
-#endif /* HAS_STPCPY */
-}
+char g_ln[MAX_LINE_LEN];
+#endif /* PRINT_PER_CHAR */
+
+#ifndef _DIRENT_HAVE_D_TYPE
+#include <sys/stat.h>
+#endif /* _DIRENT_HAVE_D_TYPE */
+
+#include "../lib/catvr.h"
 
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
@@ -53,24 +40,54 @@ static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char
 #	define putchar(c) putchar_unlocked(c)
 #endif
 
+#ifdef HAS_FGETS_UNLOCKED
+#	define fgets(s, N, fp) fgets_unlocked(s, N, fp)
+#endif
+
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_GREEN   "\x1b[32m"
+#define ANSI_YELLOW  "\x1b[33m"
+#define ANSI_BLUE    "\x1b[34m"
+#define ANSI_MAGENTA "\x1b[35m"
+#define ANSI_CYAN    "\x1b[36m"
+#define ANSI_RESET   "\x1b[0m"
+
+static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)
+{
+	memcpy(path, dir, dlen);
+	*(path += dlen) = '/';
+	memcpy(path + 1, filename, dlen + 1);
+}
+
+static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char *filename)
+{
+	memcpy(path, dir, dlen);
+	*(path += dlen) = '/';
+#ifdef HAS_STPCPY
+	return stpcpy(path + 1, filename);
+#else
+	dlen = strlen(filename);
+	return (char *)memcpy(path + 1, filename, dlen + 1) + dlen;
+#endif /* HAS_STPCPY */
+}
+
 #if PRINT_PER_CHAR
 static INLINE void catv(const char *filename)
 {
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
-	NL = 0;
-	char c;
-	printf("%s:0:", filename + fuldirlen + 1);
+	g_NL = 0;
+	printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "0" ANSI_RESET ":", filename + g_fuldirlen + 1);
 	for (;;) {
-		switch (c = fgetc(fp)) {
+		switch (g_c = fgetc(fp)) {
 		default:
 		case '\t':
-			putchar(c);
+			putchar(g_c);
 			continue;
 		case '\n':
 			putchar('\n');
-			printf("%s:%d:", filename + fuldirlen + 1, ++NL);
+			printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":", filename + g_fuldirlen + 1, ++g_NL);
 			continue;
 		case '\0':
 		CASE_UNPRINTABLE_WO_NUL_TAB_NL
@@ -87,17 +104,13 @@ static INLINE void catv(const char *filename)
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
-	NL = 0;
-#	if DEBUG
+#if DEBUG
 	printf("filename: %s\n", filename);
-#	endif /* DEBUG */
-#	ifdef HAS_FGETS_UNLOCKED
-	while (fgets_unlocked(ln, MAX_LINE_LEN, fp)) {
-#	else
-	while (fgets(ln, MAX_LINE_LEN, fp)) {
-#	endif /* HAS_FGETS_UNLOCKED */
-		++NL;
-		for (char *lp = ln;; ++lp) {
+#endif /* DEBUG */
+	g_NL = 0;
+	while (fgets(g_ln, MAX_LINE_LEN, fp)) {
+		++g_NL;
+		for (char *lp = g_ln;; ++lp) {
 			switch (*lp) {
 			default:
 				continue;
@@ -108,7 +121,7 @@ static INLINE void catv(const char *filename)
 			}
 			break;
 		}
-		printf("%s:%d:%s", filename + fuldirlen + 1, NL, ln);
+		printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":%s", filename + g_fuldirlen + 1, g_NL, g_ln);
 	}
 OUT:
 	fclose(fp);
@@ -183,13 +196,13 @@ static int findall(const char *dir, const size_t dlen)
 int main(int argc, char **argv)
 {
 	if (argv[1]) {
-		fuldirlen = strlen(argv[1]);
-		findall(argv[1], fuldirlen);
+		g_fuldirlen = strlen(argv[1]);
+		findall(argv[1], g_fuldirlen);
 	} else {
 		char cwd[MAX_PATH_LEN];
 		getcwd(cwd, MAX_PATH_LEN);
-		fuldirlen = strlen(cwd);
-		findall(cwd, fuldirlen);
+		g_fuldirlen = strlen(cwd);
+		findall(cwd, g_fuldirlen);
 	}
 	return 0;
 }
