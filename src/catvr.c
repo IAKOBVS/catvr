@@ -209,12 +209,11 @@ int main(int argc, char **argv)
 		}
 		break;
 	CASE_CWD:
-	case '\0': {
+	case '\0':;
 		char cwd[MAX_PATH_LEN];
 		getcwd(cwd, MAX_PATH_LEN);
 		g_fuldirlen = strlen(cwd);
 		findall(cwd, g_fuldirlen);
-	   }
 	}
 	return 0;
 }
