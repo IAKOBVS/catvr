@@ -9,6 +9,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/stat.h>
+
+#include "../lib/catvr.h"
+
 #define DEBUG 0
 #define PRINT_PER_CHAR 1
 
@@ -19,18 +23,13 @@ enum {
 
 int g_NL;
 size_t g_fuldirlen;
+struct stat g_st;
 
 #if PRINT_PER_CHAR
 char g_c;
 #else
 char g_ln[MAX_LINE_LEN];
 #endif /* PRINT_PER_CHAR */
-
-#ifndef _DIRENT_HAVE_D_TYPE
-#include <sys/stat.h>
-#endif /* _DIRENT_HAVE_D_TYPE */
-
-#include "../lib/catvr.h"
 
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
@@ -156,9 +155,6 @@ static int findall(const char *dir, const size_t dlen)
 		return 0;
 	struct dirent *ep;
 	char fulpath[MAX_PATH_LEN];
-#ifndef _DIRENT_HAVE_D_TYPE
-	struct stat st;
-#endif /* _DIRENT_HAVE_D_TYPE */
 	while ((ep = readdir(dp))) {
 #if DEBUG
 		puts(ep->d_name);
@@ -175,12 +171,12 @@ static int findall(const char *dir, const size_t dlen)
 			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 		}
 #else
-		if (unlikely(stat(dir, &st)))
+		if (unlikely(stat(dir, &g_st)))
 			return 0;
-		if (S_ISREG(st.st_mode)) {
+		if (S_ISREG(g_st.st_mode)) {
 			append(fulpath, dir, dlen, ep->d_name);
 			catv(fulpath);
-		} else if (S_ISDIR(st.st_mode)) {
+		} else if (S_ISDIR(g_st.st_mode)) {
 			IF_EXCLUDED_DO(ep->d_name, continue)
 			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 		}
@@ -195,14 +191,30 @@ static int findall(const char *dir, const size_t dlen)
 
 int main(int argc, char **argv)
 {
-	if (argv[1]) {
-		g_fuldirlen = strlen(argv[1]);
-		findall(argv[1], g_fuldirlen);
-	} else {
+	switch (argv[1][0]) {
+	case '.':
+		if (unlikely(argv[1][1] == '\0'))
+			goto CASE_CWD;
+		/* FALLTHROUGH */
+	default:
+		if (unlikely(stat(argv[1], &g_st))) {
+			printf("%s not a valid file or dir\n", argv[1]);
+			return 1;
+		}
+		if (unlikely(S_ISREG(g_st.st_mode))) {
+			catv(argv[1]);
+		} else {
+			g_fuldirlen = strlen(argv[1]);
+			findall(argv[1], g_fuldirlen);
+		}
+		break;
+	CASE_CWD:
+	case '\0': {
 		char cwd[MAX_PATH_LEN];
 		getcwd(cwd, MAX_PATH_LEN);
 		g_fuldirlen = strlen(cwd);
 		findall(cwd, g_fuldirlen);
+	   }
 	}
 	return 0;
 }
