@@ -51,8 +51,6 @@ char g_ln[MAX_LINE_LEN];
 #define ANSI_CYAN    "\x1b[36m"
 #define ANSI_RESET   "\x1b[0m"
 
-#include <stdlib.h>
-
 static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)
 {
 	memcpy(path, dir, dlen);
@@ -138,6 +136,7 @@ OUT:
 		case '.':                      \
 		case '\0':                     \
 			action;                \
+			break;                 \
 		case 'g':                      \
 			if (filename[2] == 'i' \
 			&& filename[3] == 't') \
@@ -150,6 +149,7 @@ OUT:
 			&& filename[5] == 'd'  \
 			&& filename[6] == 'e') \
 				action;        \
+			break;                 \
 		}
 
 static int findall(const char *dir, const size_t dlen)
