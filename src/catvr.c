@@ -51,6 +51,8 @@ char g_ln[MAX_LINE_LEN];
 #define ANSI_CYAN    "\x1b[36m"
 #define ANSI_RESET   "\x1b[0m"
 
+#include <stdlib.h>
+
 static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)
 {
 	memcpy(path, dir, dlen);
@@ -60,11 +62,13 @@ static INLINE void append(char *path, const char *dir, size_t dlen, const char *
 
 static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char *filename)
 {
-	memcpy(path, dir, dlen);
-	*(path += dlen) = '/';
-#ifdef HAS_STPCPY
+#if defined(HAS_STPCPY) && defined(HAS_MEMPCPY)
+	*(path = (char *)mempcpy(path, dir, dlen)) = '/';
+	stpcpy(path + 1, filename);
 	return stpcpy(path + 1, filename);
 #else
+	memcpy(path, dir, dlen);
+	*(path += dlen) = '/';
 	dlen = strlen(filename);
 	return (char *)memcpy(path + 1, filename, dlen + 1) + dlen;
 #endif /* HAS_STPCPY */
@@ -191,10 +195,12 @@ static int findall(const char *dir, const size_t dlen)
 
 int main(int argc, char **argv)
 {
+	if (unlikely(argc == 1))
+		goto GET_CWD;
 	switch (argv[1][0]) {
 	case '.':
 		if (unlikely(argv[1][1] == '\0'))
-			goto CASE_CWD;
+			goto GET_CWD;
 		/* FALLTHROUGH */
 	default:
 		if (unlikely(stat(argv[1], &g_st))) {
@@ -202,18 +208,20 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
+			g_fuldirlen = strrchr(argv[1], '/') - argv[1];
 			catv(argv[1]);
 		} else {
 			g_fuldirlen = strlen(argv[1]);
 			findall(argv[1], g_fuldirlen);
 		}
 		break;
-	CASE_CWD:
-	case '\0':;
+	case '\0':
+	GET_CWD:;
 		char cwd[MAX_PATH_LEN];
 		getcwd(cwd, MAX_PATH_LEN);
 		g_fuldirlen = strlen(cwd);
 		findall(cwd, g_fuldirlen);
+		break;
 	}
 	return 0;
 }
