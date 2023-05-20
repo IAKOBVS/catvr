@@ -8,4 +8,5 @@ else
 	echo 'gcc/clang not available'
 	return 1
 fi
+mkdir -p bin
 $compiler -O3 -flto src/$file.c -o bin/$file && echo "$file successfuly compiled!"
