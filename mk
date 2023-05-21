@@ -9,4 +9,7 @@ else
 	return 1
 fi
 mkdir -p bin
-$compiler -O3 -flto src/$file.c -o bin/$file && echo "$file successfuly compiled!"
+cd src || return
+for file in $(echo *.c); do
+	$compiler -O3 -flto $file -o ../bin/${file%.*} && echo "$file successfuly compiled!"
+done

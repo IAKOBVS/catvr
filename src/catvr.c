@@ -6,12 +6,11 @@
 
 #include <dirent.h>
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <sys/stat.h>
 
-#include "../lib/catvr.h"
+#include "../lib/libcatvr.h"
 
 #define DEBUG 0
 #define PRINT_PER_CHAR 1
@@ -46,35 +45,6 @@ char g_ln[MAX_LINE_LEN];
 #ifdef HAS_FGETS_UNLOCKED
 #	define fgets(s, N, fp) fgets_unlocked(s, N, fp)
 #endif
-
-#define ANSI_RED     "\x1b[31m"
-#define ANSI_GREEN   "\x1b[32m"
-#define ANSI_YELLOW  "\x1b[33m"
-#define ANSI_BLUE    "\x1b[34m"
-#define ANSI_MAGENTA "\x1b[35m"
-#define ANSI_CYAN    "\x1b[36m"
-#define ANSI_RESET   "\x1b[0m"
-
-static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)
-{
-	memcpy(path, dir, dlen);
-	*(path += dlen) = '/';
-	memcpy(path + 1, filename, dlen + 1);
-}
-
-static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char *filename)
-{
-#if defined(HAS_STPCPY) && defined(HAS_MEMPCPY)
-	*(path = (char *)mempcpy(path, dir, dlen)) = '/';
-	stpcpy(path + 1, filename);
-	return stpcpy(path + 1, filename);
-#else
-	memcpy(path, dir, dlen);
-	*(path += dlen) = '/';
-	dlen = strlen(filename);
-	return (char *)memcpy(path + 1, filename, dlen + 1) + dlen;
-#endif /* HAS_STPCPY */
-}
 
 #if PRINT_PER_CHAR
 static INLINE void catv(const char *filename)
@@ -127,7 +97,7 @@ static INLINE void catv(const char *filename)
 			}
 			break;
 		}
-		printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":%s", filename + g_fuldirlen + 1, g_NL, g_ln);
+		printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":%s\n", filename + g_fuldirlen + 1, g_NL, g_ln);
 	}
 OUT:
 	fclose(fp);
@@ -198,26 +168,28 @@ static int findall(const char *dir, const size_t dlen)
 	return 1;
 }
 
+#define DIRECTORY argv[1]
+
 int main(int argc, char **argv)
 {
 	if (unlikely(argc == 1))
 		goto GET_CWD;
-	switch (argv[1][0]) {
+	switch (DIRECTORY[0]) {
 	case '.':
-		if (unlikely(argv[1][1] == '\0'))
+		if (unlikely(DIRECTORY[1] == '\0'))
 			goto GET_CWD;
 		/* FALLTHROUGH */
 	default:
-		if (unlikely(stat(argv[1], &g_st))) {
-			printf("%s not a valid file or dir\n", argv[1]);
+		if (unlikely(stat(DIRECTORY, &g_st))) {
+			printf("%s not a valid file or dir\n", DIRECTORY);
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
-			g_fuldirlen = strrchr(argv[1], '/') - argv[1];
-			catv(argv[1]);
+			g_fuldirlen = strrchr(DIRECTORY, '/') - DIRECTORY;
+			catv(DIRECTORY);
 		} else {
-			g_fuldirlen = strlen(argv[1]);
-			findall(argv[1], g_fuldirlen);
+			g_fuldirlen = strlen(DIRECTORY);
+			findall(DIRECTORY, g_fuldirlen);
 		}
 		break;
 	case '\0':
