@@ -142,46 +142,49 @@ static void usage(void)
 DEF_FIND_T(find_fgrep, fgrep,
 		ptn, ptnlen, fulpath)
 
+#define PTN argv[1]
+#define DIR_ argv[2]
+
 int main(int argc, char **argv)
 {
 	if (unlikely(argc == 1))
 		usage();
-	if (unlikely(!argv[1][0]))
+	if (unlikely(!PTN[0]))
 		usage();
-	char pattern[MAX_LINE_LEN];
-	char *pp = pattern;
-	char *g_nlp = argv[1];
+	char ptn[MAX_LINE_LEN];
+	char *ptnp = ptn;
+	char *g_nlp = PTN;
 	for (;; ++g_nlp) {
 		switch (*g_nlp) {
 		CASE_UPPER
-			*pp = *g_nlp - 'A' + 'a';
+			*ptnp = *g_nlp - 'A' + 'a';
 			continue;
 		default:
-			*pp = *g_nlp;
+			*ptnp = *g_nlp;
 			continue;
 		case '\0':;
 		}
 		break;
 	}
-	*pp = '\0';
+	*ptnp = '\0';
 	if (argc == 2)
 		goto GET_CWD;
-	switch (argv[2][0]) {
+	switch (DIR_[0]) {
 	case '.':
-		if (unlikely(argv[2][1] == '\0'))
+		if (unlikely(DIR_[1] == '\0'))
 			goto GET_CWD;
 	/* FALLTHROUGH */
 	default:
-		if (unlikely(stat(argv[2], &g_st))) {
-			printf("%s not a valid file or dir\n", argv[2]);
+		if (unlikely(stat(DIR_, &g_st))) {
+			printf("%s not a valid file or dir\n", DIR_);
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
-			g_fuldirlen = strrchr(argv[2], '/') - argv[2];
-			fgrep(pattern, strlen(pattern), argv[2]);
+			g_fuldirlen = strrchr(DIR_, '/') - DIR_;
+			fgrep(ptn, strlen(ptn), DIR_);
 		} else {
-			g_fuldirlen = strlen(argv[2]);
-			find_fgrep(pattern, strlen(pattern), argv[2], g_fuldirlen);
+			g_fuldirlen = strlen(DIR_);
+			find_fgrep(ptn, strlen(ptn), DIR_, g_fuldirlen);
 		}
 		break;
 	case '\0':
@@ -189,7 +192,7 @@ int main(int argc, char **argv)
 		char cwd[MAX_PATH_LEN];
 		getcwd(cwd, MAX_PATH_LEN);
 		g_fuldirlen = strlen(cwd);
-		find_fgrep(pattern, strlen(pattern), cwd, g_fuldirlen);
+		find_fgrep(ptn, strlen(ptn), cwd, g_fuldirlen);
 		break;
 	}
 	return 0;
