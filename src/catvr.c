@@ -35,6 +35,10 @@ char g_ln[MAX_LINE_LEN];
 #	define fgetc(c) fgetc_unlocked(c)
 #endif
 
+#ifdef HAS_GETC_UNLOCKED
+#	define getc(fp) getc_unlocked(fp)
+#endif
+
 #ifdef HAS_PUTCHAR_UNLOCKED
 #	define putchar(c) putchar_unlocked(c)
 #endif
@@ -81,7 +85,7 @@ static INLINE void catv(const char *filename)
 	g_NL = 0;
 	printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "0" ANSI_RESET ":", filename + g_fuldirlen + 1);
 	for (;;) {
-		switch (g_c = fgetc(fp)) {
+		switch (g_c = getc(fp)) {
 		default:
 		case '\t':
 			putchar(g_c);
@@ -99,6 +103,7 @@ static INLINE void catv(const char *filename)
 	}
 	fclose(fp);
 }
+
 #else
 static INLINE void catv(const char *filename)
 {
