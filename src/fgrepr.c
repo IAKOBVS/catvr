@@ -14,6 +14,7 @@
 enum {
 	MAX_LINE_LEN = 4096,
 	MAX_PATH_LEN = 4096,
+	MAX_ARG_LEN = 256,
 };
 char g_ln[MAX_LINE_LEN];
 char *g_lnp;
@@ -142,18 +143,18 @@ static void usage(void)
 DEF_FIND_T(find_fgrep, fgrep,
 		ptn, ptnlen, fulpath)
 
-#define PTN argv[1]
+#define PTN_ argv[1]
 #define DIR_ argv[2]
 
 int main(int argc, char **argv)
 {
 	if (unlikely(argc == 1))
 		usage();
-	if (unlikely(!PTN[0]))
+	if (unlikely(!PTN_[0]))
 		usage();
-	char ptn[MAX_LINE_LEN];
+	char ptn[MAX_ARG_LEN];
 	char *ptnp = ptn;
-	char *g_nlp = PTN;
+	char *g_nlp = PTN_;
 	for (;; ++g_nlp) {
 		switch (*g_nlp) {
 		CASE_UPPER
