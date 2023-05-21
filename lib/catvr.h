@@ -1,3 +1,6 @@
+#ifndef CATVR_DEF_H
+#define CATVR_DEF_H
+
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 24
 #	if _POSIX_C_SOURCE >= 199309L
 #		define HAS_GETC_UNLOCKED
@@ -226,3 +229,5 @@
 	case 29:         \
 	case 30:         \
 	case 31:
+
+#endif /* CATVR_DEF_H */
