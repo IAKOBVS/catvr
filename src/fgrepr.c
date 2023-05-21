@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	case '.':
 		if (unlikely(argv[2][1] == '\0'))
 			goto GET_CWD;
-		/* FALLTHROUGH */
+	/* FALLTHROUGH */
 	default:
 		if (unlikely(stat(argv[2], &g_st))) {
 			printf("%s not a valid file or dir\n", argv[2]);
