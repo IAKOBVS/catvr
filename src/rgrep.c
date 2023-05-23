@@ -17,6 +17,8 @@ enum {
 	MAX_ARG_LEN = 256,
 };
 char g_ln[MAX_LINE_LEN];
+char g_lnlower[MAX_LINE_LEN];
+char *g_lnlowerp;
 char *g_lnp;
 int g_lnlen;
 int g_NL = 0;
@@ -42,14 +44,19 @@ static INLINE int fgrep(const char *ptn, const char *filename)
 		return 0;
 	g_NL = 0;
 	while ((g_lnp = fgets(g_ln, MAX_LINE_LEN, fp))) {
-		for (;; ++g_lnp) {
+		g_lnlowerp = g_lnlower;
+		for (;; ++g_lnp, ++g_lnlowerp) {
 			switch (*g_lnp) {
+			CASE_UPPER
+				*g_lnlowerp = *g_lnp - 'A' + 'a';
+				continue;
+			default:
+			case '\t':
+				*g_lnlowerp = *g_lnp;
+				continue;
 			case '\0':
 			CASE_UNPRINTABLE_WO_NUL_TAB_NL
 				goto OUT;
-			default:
-			case '\t':
-				continue;
 			case '\n':
 			case EOF:
 #ifdef HAS_MEMMEM
@@ -58,8 +65,9 @@ static INLINE int fgrep(const char *ptn, const char *filename)
 			}
 			break;
 		}
+		*g_lnlowerp = '\0';
 		++g_NL;
-		if ((memmem(g_ln, g_lnlen, ptn, ptnlen)))
+		if ((memmem(g_lnlower, g_lnlen, ptn, ptnlen)))
 			printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":%s", filename + g_fuldirlen + 1, g_NL, g_ln);
 	}
 OUT:
@@ -154,14 +162,14 @@ int main(int argc, char **argv)
 		usage();
 	char ptn[MAX_ARG_LEN];
 	char *ptnp = ptn;
-	char *g_nlp = PTN_;
-	for (;; ++g_nlp) {
-		switch (*g_nlp) {
+	g_lnp = PTN_;
+	for (;; ++g_lnp, ++ptnp) {
+		switch (*g_lnp) {
 		CASE_UPPER
-			*ptnp = *g_nlp - 'A' + 'a';
+			*ptnp = *g_lnp - 'A' + 'a';
 			continue;
 		default:
-			*ptnp = *g_nlp;
+			*ptnp = *g_lnp;
 			continue;
 		case '\0':;
 		}
