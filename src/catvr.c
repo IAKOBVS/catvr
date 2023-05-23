@@ -127,11 +127,11 @@ OUT:
 			break;                 \
 		}
 
-static int findall(const char *dir, const size_t dlen)
+static void findall(const char *dir, const size_t dlen)
 {
 	DIR *dp = opendir(dir);
 	if (unlikely(!dp))
-		return 0;
+		return;
 	struct dirent *ep;
 	char fulpath[MAX_PATH_LEN];
 	while ((ep = readdir(dp))) {
@@ -151,7 +151,7 @@ static int findall(const char *dir, const size_t dlen)
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
-			return 0;
+			return;
 		if (S_ISREG(g_st.st_mode)) {
 			append(fulpath, dir, dlen, ep->d_name);
 			catv(fulpath);
@@ -165,7 +165,6 @@ static int findall(const char *dir, const size_t dlen)
 #endif /* DEBUG */
 	}
 	closedir(dp);
-	return 1;
 }
 
 #define DIRECTORY argv[1]
