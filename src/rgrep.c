@@ -33,33 +33,6 @@ struct stat g_st;
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
 
-/* static INLINE void base_grep(const char *ptn, const char *filename, char *(*search)(const char *, const char *)) */
-/* { */
-/* 	FILE *fp = fopen(filename, "r"); */
-/* 	if (unlikely(!fp)) */
-/* 		return; */
-/* 	while ((g_lnp = fgets(g_ln, MAX_LINE_LEN, fp))) { */
-/* 		for (;; ++g_lnp) { */
-/* 			switch (*g_lnp) { */
-/* 			default: */
-/* 			case '\t': */
-/* 				continue; */
-/* 			case '\0': */
-/* 			CASE_UNPRINTABLE_WO_NUL_TAB_NL */
-/* 				goto OUT; */
-/* 			case '\n': */
-/* 			case EOF: */
-/* 				g_lnlen = g_lnp - g_ln; */
-/* 			} */
-/* 			break; */
-/* 		} */
-/* 		if (search(g_ln, ptn)) */
-/* 			printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":%s", filename + g_fuldirlen + 1, g_NL, g_ln); */
-/* 	} */
-/* OUT: */
-/* 	fclose(fp); */
-/* } */
-
 #ifdef HAS_MEMMEM
 static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filename)
 #else
@@ -173,7 +146,7 @@ DEF_FIND_T(find_fgrep, fgrep,
 
 static void usage(void)
 {
-	fputs("Usage: ./fgrepr <ptn> <dir or file> <flag>\nif <dir or file> is not provided, it defaults to $PWD\nif <flag> is -i, it will match case insensitively; otherwise, it will match literally\n", stderr);
+	puts("Usage: ./rgrep <ptn> <dir or file> \nif <dir or file> is not provided, it defaults to $PWD\n");
 	exit(1);
 }
 

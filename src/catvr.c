@@ -46,14 +46,19 @@ char g_ln[MAX_LINE_LEN];
 #	define fgets(s, N, fp) fgets_unlocked(s, N, fp)
 #endif
 
+#ifdef HAS_FWRITE_UNLOCKED
+#	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
+#endif
+
 #if PRINT_PER_CHAR
-static INLINE void catv(const char *filename)
+static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 {
-	FILE *fp = fopen(filename, "r");
+	FILE *RESTRICT fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
 	g_NL = 0;
-	printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "0" ANSI_RESET ":", filename + g_fuldirlen + 1);
+	fwrite(ANSI_RED ":" ANSI_GREEN "0" ANSI_RESET ":", 1, sizeof(ANSI_RED ":" ANSI_GREEN "0" ANSI_RESET ":") - 1, stdout);
+	fwrite(filename + g_fuldirlen + 1, 1, flen, stdout);
 	for (;;) {
 		switch (g_c = getc(fp)) {
 		default:
@@ -61,8 +66,9 @@ static INLINE void catv(const char *filename)
 			putchar(g_c);
 			continue;
 		case '\n':
-			putchar('\n');
-			printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":", filename + g_fuldirlen + 1, ++g_NL);
+			fwrite("\n" ANSI_RED, 1, sizeof("\n" ANSI_RED) - 1, stdout);
+			fwrite(filename + g_fuldirlen + 1, 1, flen, stdout);
+			fwrite(&g_NL, sizeof(int), 1, stdout);
 			continue;
 		case '\0':
 		CASE_UNPRINTABLE_WO_NUL_TAB_NL
@@ -75,9 +81,9 @@ static INLINE void catv(const char *filename)
 }
 
 #else
-static INLINE void catv(const char *filename)
+static INLINE void catv(const char *RESTRICT filename)
 {
-	FILE *fp = fopen(filename, "r");
+	FILE *RESTRICT fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
 #if DEBUG
@@ -86,7 +92,7 @@ static INLINE void catv(const char *filename)
 	g_NL = 0;
 	while (fgets(g_ln, MAX_LINE_LEN, fp)) {
 		++g_NL;
-		for (char *lp = g_ln;; ++lp) {
+		for (char *RESTRICT lp = g_ln;; ++lp) {
 			switch (*lp) {
 			default:
 				continue;
@@ -127,12 +133,12 @@ OUT:
 			break;                 \
 		}
 
-static void findall(const char *dir, const size_t dlen)
+static void findall(const char *RESTRICT dir, const size_t dlen)
 {
-	DIR *dp = opendir(dir);
+	DIR *RESTRICT dp = opendir(dir);
 	if (unlikely(!dp))
 		return;
-	struct dirent *ep;
+	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
 	while ((ep = readdir(dp))) {
 #if DEBUG
@@ -141,8 +147,7 @@ static void findall(const char *dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			append(fulpath, dir, dlen, ep->d_name);
-			catv(fulpath);
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 			break;
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
@@ -153,11 +158,10 @@ static void findall(const char *dir, const size_t dlen)
 		if (unlikely(stat(dir, &g_st)))
 			return;
 		if (S_ISREG(g_st.st_mode)) {
-			append(fulpath, dir, dlen, ep->d_name);
-			catv(fulpath);
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
 		} else if (S_ISDIR(g_st.st_mode)) {
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
 		}
 #endif /* _DIRENT_HAVE_D_TYPE */
 #if DEBUG
@@ -185,7 +189,7 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIRECTORY, '/') - DIRECTORY;
-			catv(DIRECTORY);
+			catv(DIRECTORY, g_fuldirlen);
 		} else {
 			g_fuldirlen = strlen(DIRECTORY);
 			findall(DIRECTORY, g_fuldirlen);

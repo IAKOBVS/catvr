@@ -99,6 +99,18 @@
 #	define unlikely(x) (x)
 #endif /* __has_builtin(__builtin_expect) */
 
+#ifdef __cplusplus
+#	define RESTRICT
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#	define RESTRICT restrict
+#elif defined(__GNUC__) || defined(__clang__)
+#	define RESTRICT __restrict__
+#elif defined(_MSC_VER)
+#	define RESTRICT __restrict
+#else
+#	define RESTRICT
+#endif // restrict
+
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_GREEN   "\x1b[32m"
 #define ANSI_YELLOW  "\x1b[33m"
