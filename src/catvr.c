@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIRECTORY, '/') - DIRECTORY;
-			catv(DIRECTORY, g_fuldirlen);
+			catv(DIRECTORY, strlen(DIRECTORY + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIRECTORY);
 			findall(DIRECTORY, g_fuldirlen);
