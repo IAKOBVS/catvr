@@ -25,8 +25,24 @@ int g_NL = 0;
 int g_fuldirlen;
 struct stat g_st;
 
+#ifdef HAS_FGETC_UNLOCKED
+#	define fgetc(c) fgetc_unlocked(c)
+#endif
+
+#ifdef HAS_GETC_UNLOCKED
+#	define getc(fp) getc_unlocked(fp)
+#endif
+
+#ifdef HAS_PUTCHAR_UNLOCKED
+#	define putchar(c) putchar_unlocked(c)
+#endif
+
 #ifdef HAS_FGETS_UNLOCKED
 #	define fgets(s, N, fp) fgets_unlocked(s, N, fp)
+#endif
+
+#ifdef HAS_FWRITE_UNLOCKED
+#	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
 
 #ifndef HAS_MEMMEM
@@ -34,41 +50,48 @@ struct stat g_st;
 #endif /* !HAS_MEMMEM */
 
 #ifdef HAS_MEMMEM
-static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filename)
+static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filename, const size_t flen)
 #else
-static INLINE void fgrep(const char *ptn, const char *filename)
+static INLINE void fgrep(const char *ptn, const char *filename, const size_t flen)
 #endif /* HAS_MEMMEM */
 {
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
-	g_NL = 0;
-	while ((g_lnp = fgets(g_ln, MAX_LINE_LEN, fp))) {
-		g_lnlowerp = g_lnlower;
-		for (;; ++g_lnp, ++g_lnlowerp) {
-			switch (*g_lnp) {
-			CASE_UPPER
-				*g_lnlowerp = *g_lnp - 'A' + 'a';
-				continue;
-			default:
-			case '\t':
-				*g_lnlowerp = *g_lnp;
-				continue;
-			case '\0':
-			CASE_UNPRINTABLE_WO_NUL_TAB_NL
-				goto OUT;
-			case '\n':
-			case EOF:
-#ifdef HAS_MEMMEM
-				g_lnlen = g_lnp - g_ln;
-#endif /* HAS_MEMMEM */
+	g_NL = 1;
+	g_lnp = g_ln;
+	filename = filename + g_fuldirlen + 1;
+	for (;; ++g_lnp, ++g_lnlowerp) {
+		switch (*g_lnp = getc(fp)) {
+		CASE_UPPER
+			*g_lnlowerp = *g_lnp - 'A' + 'a';
+			continue;
+		default:
+		case '\t':
+			*g_lnlowerp = *g_lnp;
+			continue;
+		case EOF:
+			*g_lnp = '\n';
+			/* FALLTHROUGH */
+		case '\n':
+			++g_NL;
+			g_lnlen = g_lnp - g_ln + 1;
+			if ((memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
+				fwrite(filename, 1, flen, stdout);
+				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
+				fwrite(&g_NL, sizeof(int), 1, stdout);
+				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout);
+				fwrite(g_ln, 1, g_lnlen, stdout);
 			}
-			break;
+			g_lnp = g_ln;
+			g_lnlowerp = g_lnlower;
+			continue;
+		case '\0':
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL
+			goto OUT;
 		}
-		*g_lnlowerp = '\0';
-		++g_NL;
-		if ((memmem(g_lnlower, g_lnlen, ptn, ptnlen)))
-			printf(ANSI_RED "%s" ANSI_RESET ":" ANSI_GREEN "%d" ANSI_RESET ":%s", filename + g_fuldirlen + 1, g_NL, g_ln);
+		break;
 	}
 OUT:
 	fclose(fp);
@@ -102,8 +125,7 @@ OUT:
 #define DO_IF_REG(FUNC_SELF, FUNC_REG, ...)                                                                 \
 	switch (ep->d_type) {                                                                               \
 		case DT_REG:                                                                                \
-			append(fulpath, dir, dlen, ep->d_name);                                             \
-			FUNC_REG(__VA_ARGS__);                                                              \
+			FUNC_REG(__VA_ARGS__, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));  \
 			break;                                                                              \
 		case DT_DIR:                                                                                \
 			/* skip . , .., .git, .vscode */                                                    \
@@ -117,8 +139,7 @@ OUT:
 	if (unlikely(stat(dir, &g_st)))                                                             \
 		continue;                                                                           \
 	if (S_ISREG(g_st.st_mode)) {                                                                \
-		append(fulpath, dir, dlen, ep->d_name);                                             \
-		FUNC_REG(__VA_ARGS__);                                                              \
+		FUNC_REG(__VA_ARGS__, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));  \
 	} else if (S_ISDIR(g_st.st_mode)) {                                                         \
 		IF_EXCLUDED_DO(ep->d_name, continue)                                                \
 		FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
@@ -189,7 +210,7 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIR_, '/') - DIR_;
-			fgrep(ptn, strlen(ptn), DIR_);
+			fgrep(ptn, strlen(ptn), DIR_, strlen(DIR_ + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIR_);
 			find_fgrep(ptn, strlen(ptn), DIR_, g_fuldirlen);
