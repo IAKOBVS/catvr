@@ -24,6 +24,7 @@ int g_lnlen;
 int g_NL = 0;
 int g_fuldirlen;
 struct stat g_st;
+const char *g_found;
 
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
@@ -49,11 +50,7 @@ struct stat g_st;
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
 
-#ifdef HAS_MEMMEM
 static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filename, const size_t flen)
-#else
-static INLINE void fgrep(const char *ptn, const char *filename, const size_t flen)
-#endif /* HAS_MEMMEM */
 {
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
@@ -76,13 +73,23 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t fle
 		case '\n':
 			++g_NL;
 			g_lnlen = g_lnp - g_ln + 1;
-			if ((memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {
+			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {
 				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
 				fwrite(filename, 1, flen, stdout);
 				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
 				fwrite(&g_NL, sizeof(int), 1, stdout);
+				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
+				/* fwrite(g_ln, 1, g_lnlen, stdout); */
+				g_lnp = g_ln;
+				if (likely(g_ln != g_found)) {
+					fwrite(g_ln, 1, g_found - g_ln, stdout);
+					g_lnp += (g_found - g_ln);
+				}
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
+				fwrite(g_lnp, 1, ptnlen, stdout);
+				g_lnp += ptnlen;
 				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout);
-				fwrite(g_ln, 1, g_lnlen, stdout);
+				fwrite(g_lnp, 1, g_lnlen - (g_lnp - g_ln), stdout);
 			}
 			g_lnp = g_ln;
 			g_lnlowerp = g_lnlower;
