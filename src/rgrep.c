@@ -21,7 +21,7 @@ char g_lnlower[MAX_LINE_LEN];
 char *g_lnlowerp;
 char *g_lnp;
 int g_lnlen;
-int g_NL = 0;
+int g_NL;
 int g_fuldirlen;
 struct stat g_st;
 const char *g_found;
@@ -57,6 +57,7 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 		return;
 	g_NL = 1;
 	g_lnp = g_ln;
+	g_lnlowerp = g_lnlower;
 	filename = filename + g_fuldirlen + 1;
 	for (;; ++g_lnp, ++g_lnlowerp) {
 		switch (*g_lnp = getc(fp)) {
@@ -69,7 +70,27 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 			continue;
 		case EOF:
 			*g_lnp = '\n';
-			/* FALLTHROUGH */
+			++g_NL;
+			g_lnlen = g_lnp - g_ln + 1;
+			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
+				fwrite(filename, 1, flen, stdout);
+				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
+				printf("%d", g_NL);
+				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
+				fwrite(g_ln, 1, g_lnlen, stdout);
+				g_lnp = g_ln;
+				if (likely(g_ln != g_found)) {
+					fwrite(g_ln, 1, g_found - g_ln, stdout);
+					g_lnp += (g_found - g_ln);
+				}
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
+				fwrite(g_lnp, 1, ptnlen, stdout);
+				g_lnp += ptnlen;
+				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout);
+				fwrite(g_lnp, 1, g_lnlen - (g_lnp - g_ln), stdout);
+			}
+			break;
 		case '\n':
 			++g_NL;
 			g_lnlen = g_lnp - g_ln + 1;
@@ -77,9 +98,9 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
 				fwrite(filename, 1, flen, stdout);
 				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
-				fwrite(&g_NL, sizeof(int), 1, stdout);
+				printf("%d", g_NL);
 				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
-				/* fwrite(g_ln, 1, g_lnlen, stdout); */
+				fwrite(g_ln, 1, g_lnlen, stdout);
 				g_lnp = g_ln;
 				if (likely(g_ln != g_found)) {
 					fwrite(g_ln, 1, g_found - g_ln, stdout);
@@ -96,11 +117,10 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 			continue;
 		case '\0':
 		CASE_UNPRINTABLE_WO_NUL_TAB_NL
-			goto OUT;
+			break;
 		}
 		break;
 	}
-OUT:
 	fclose(fp);
 }
 

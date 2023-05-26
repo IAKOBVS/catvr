@@ -64,8 +64,9 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 			fwrite("\n" ANSI_RED, 1, sizeof("\n" ANSI_RED) - 1, stdout);
 			fwrite(filename, 1, flen, stdout);
 			fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
-			fwrite(&g_NL, sizeof(int), 1, stdout);
-			fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout);
+			printf("%d", g_NL);
+			fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
+			++g_NL;
 			continue;
 		case '\0':
 		CASE_UNPRINTABLE_WO_NUL_TAB_NL
