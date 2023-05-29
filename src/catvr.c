@@ -115,12 +115,12 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
 			break;
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))

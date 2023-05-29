@@ -78,17 +78,6 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 				printf("%d", g_NL);
 				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
 				fwrite(g_ln, 1, g_lnlen, stdout);
-				/* g_lnp = g_ln; */
-				/* if (likely(g_ln != g_found)) { */
-				/* 	fwrite(g_ln, 1, g_found - g_ln, stdout); */
-				/* 	g_lnp += (g_found - g_ln); */
-				/* } */
-				/* fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout); */
-				/* fwrite(g_lnp, 1, ptnlen, stdout); */
-				/* g_lnp += ptnlen; */
-				/* fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout); */
-				/* fwrite(g_lnp, 1, g_lnlen - (g_lnp - g_ln), stdout); */
-				/* putchar('\n'); */
 			}
 			break;
 		case '\n':
@@ -101,17 +90,6 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 				printf("%d", g_NL);
 				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
 				fwrite(g_ln, 1, g_lnlen, stdout);
-				/* g_lnp = g_ln; */
-				/* if (likely(g_ln != g_found)) { */
-				/* 	fwrite(g_ln, 1, g_found - g_ln, stdout); */
-				/* 	g_lnp += (g_found - g_ln); */
-				/* } */
-				/* fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout); */
-				/* fwrite(g_lnp, 1, ptnlen, stdout); */
-				/* g_lnp += ptnlen; */
-				/* fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout); */
-				/* fwrite(g_lnp, 1, g_lnlen - (g_lnp - g_ln), stdout); */
-				/* putchar('\n'); */
 			}
 			g_lnp = g_ln;
 			g_lnlowerp = g_lnlower;
