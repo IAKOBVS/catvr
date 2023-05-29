@@ -14,6 +14,12 @@
 
 #define DEBUG 0
 
+#if NO_ANSI
+#	 define ANSI_RED ""
+#	 define ANSI_GREEN ""
+#	 define ANSI_RESET ""
+#endif /* NO_ANSI */
+
 enum {
 	MAX_LINE_LEN = 4096,
 	MAX_PATH_LEN = 4096,
@@ -115,21 +121,21 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
 			break;
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
 			return;
 		if (S_ISREG(g_st.st_mode)) {
-			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
 		} else if (S_ISDIR(g_st.st_mode)) {
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
 		}
 #endif /* _DIRENT_HAVE_D_TYPE */
 #if DEBUG
