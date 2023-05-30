@@ -170,14 +170,15 @@ int main(int argc, char **argv)
 			} else {
 				char cwd[MAX_PATH_LEN];
 				getcwd(cwd, MAX_PATH_LEN);
-				const size_t len = strlen(cwd);
-				cwd[len] = '/';
-				g_fuldirlen = len;
+				const size_t clen = strlen(cwd);
+				cwd[clen] = '/';
+				g_fuldirlen = clen;
 #ifdef HAS_STPCPY
-				catv(cwd, stpcpy(cwd + len + 1, DIRECTORY) - cwd - len - 1);
+				catv(cwd, stpcpy(cwd + clen + 1, DIRECTORY) - cwd - clen - 1);
 #else
-				strcpy(cwd + len + 1, DIRECTORY);
-				catv(cwd, strlen(DIRECTORY));
+				const size_t dlen = strlen(DIRECTORY);
+				memcpy(cwd + clen + 1, DIRECTORY, dlen + 1);
+				catv(cwd, dlen);
 #endif /* HAS_STPCPY */
 			}
 		} else {
