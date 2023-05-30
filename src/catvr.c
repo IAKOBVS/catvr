@@ -126,7 +126,7 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
@@ -135,7 +135,7 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
 		} else if (S_ISDIR(g_st.st_mode)) {
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 		}
 #endif /* _DIRENT_HAVE_D_TYPE */
 #if DEBUG
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
-			g_fuldirlen = strrchr(DIRECTORY, '/') - DIRECTORY;
+			g_fuldirlen = (argv[2] = strrchr(DIRECTORY, '/')) ? (argv[2] - DIRECTORY) : 0;
 			catv(DIRECTORY, strlen(DIRECTORY + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIRECTORY);
