@@ -276,7 +276,6 @@ static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char
 {
 #if defined(HAS_STPCPY) && defined(HAS_MEMPCPY)
 	*(path = (char *)mempcpy(path, dir, dlen)) = '/';
-	stpcpy(path + 1, filename);
 	return stpcpy(path + 1, filename);
 #else
 	memcpy(path, dir, dlen);

@@ -162,8 +162,23 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
-			g_fuldirlen = (argv[2] = strrchr(DIRECTORY, '/')) ? (argv[2] - DIRECTORY) : 0;
-			catv(DIRECTORY, strlen(DIRECTORY + g_fuldirlen));
+			argv[2] = strrchr(DIRECTORY, '/');
+			if ((argv[2] = strrchr(DIRECTORY, '/'))) {
+				g_fuldirlen = argv[2] - DIRECTORY;
+				catv(DIRECTORY, strlen(DIRECTORY + g_fuldirlen) - 1);
+			} else {
+				char cwd[MAX_PATH_LEN];
+				getcwd(cwd, MAX_PATH_LEN);
+				const size_t len = strlen(cwd);
+				cwd[len] = '/';
+				g_fuldirlen = len;
+#ifdef HAS_STPCPY
+				catv(cwd, stpcpy(cwd + len + 1, DIRECTORY) - cwd - len - 1);
+#else
+				strcpy(cwd + len + 1, DIRECTORY);
+				catv(cwd, strlen(DIRECTORY));
+#endif /* HAS_STPCPY */
+			}
 		} else {
 			g_fuldirlen = strlen(DIRECTORY);
 			findall(DIRECTORY, g_fuldirlen);
