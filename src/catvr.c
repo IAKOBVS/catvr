@@ -58,10 +58,6 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	filename = filename + g_fuldirlen + 1;
 	g_NL = 2;
 	fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
-#if DEBUG
-	printf("strlen: %zu\n", strlen(filename));
-	printf("flen: %zu\n", flen);
-#endif
 	fwrite(filename, 1, flen, stdout);
 	fwrite(ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":", 1, sizeof(ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":") - 1, stdout);
 	for (;;) {
@@ -125,21 +121,19 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			append(fulpath, dir, dlen, ep->d_name);
-			catv(fulpath, strlen(ep->d_name));
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
 			break;
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
 			IF_EXCLUDED_DO(ep->d_name, continue)
-			append(fulpath, dir, dlen, ep->d_name);
-			findall(fulpath, strlen(ep->d_name));
+			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 			break;
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
 			return;
 		if (S_ISREG(g_st.st_mode)) {
-			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen) - 1);
+			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
 		} else if (S_ISDIR(g_st.st_mode)) {
 			IF_EXCLUDED_DO(ep->d_name, continue)
 			findall(fulpath, dlen = appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
