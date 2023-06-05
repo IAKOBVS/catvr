@@ -7,12 +7,15 @@
 #include <dirent.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "../lib/libcatvr.h"
 
 #define DEBUG 0
+#define USE_FORK 1
 
 #if NO_ANSI
 #	 define ANSI_RED ""
@@ -29,6 +32,9 @@ int g_NL;
 size_t g_fuldirlen;
 struct stat g_st;
 char g_c;
+
+int forknum = 0;
+int forkmax;
 
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
@@ -121,7 +127,29 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
+#if USE_FORK
+			if (forknum == forkmax) {
+				int st;
+				pid_t child = wait(&st);
+				if (child > 0) {
+					--forknum;
+				}
+			}
+			pid_t pid = fork();
+			switch (pid) {
+			case 0:
+				catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
+				exit(0);
+				break;
+			case -1:
+				exit(1);
+				break;
+			default:
+				++forknum;
+			}
+#else
 			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
+#endif /* USE_FORK */
 			break;
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
@@ -150,6 +178,13 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 
 int main(int argc, char **argv)
 {
+#if USE_FORK
+	forkmax = sysconf(_SC_NPROCESSORS_CONF);
+	if (forkmax <= 0) {
+		perror("Can't get number of CPU cores with sysconf(_SC_NPROCESSORS_CONF)");
+		return EXIT_FAILURE;
+	}
+#endif /* USE_FORK */
 	if (unlikely(argc == 1))
 		goto GET_CWD;
 	switch (DIRECTORY[0]) {
@@ -160,7 +195,7 @@ int main(int argc, char **argv)
 	default:
 		if (unlikely(stat(DIRECTORY, &g_st))) {
 			printf("%s not a valid file or dir\n", DIRECTORY);
-			return 1;
+			return EXIT_FAILURE;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			argv[2] = strrchr(DIRECTORY, '/');
@@ -194,5 +229,5 @@ int main(int argc, char **argv)
 		findall(cwd, g_fuldirlen);
 		break;
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
