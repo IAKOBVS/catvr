@@ -11,17 +11,20 @@
 #include <sys/stat.h>
 #include "../lib/libcatvr.h"
 
-enum {
-	MAX_LINE_LEN = 4096,
-	MAX_PATH_LEN = 4096,
-	MAX_ARG_LEN = 256,
-};
+#define UINT_LEN 10
+#define MAX_LINE_LEN 4096
+#define MAX_PATH_LEN 4096
+#define MAX_ARG_LEN 256
+
 char g_ln[MAX_LINE_LEN];
 char g_lnlower[MAX_LINE_LEN];
 char *g_lnlowerp;
 char *g_lnp;
 int g_lnlen;
-int g_NL;
+unsigned int g_NL;
+char g_NLbuf[UINT_LEN];
+char *g_NLbufp;
+unsigned int g_NLbufdigits;
 int g_fuldirlen;
 struct stat g_st;
 const char *g_found;
@@ -50,6 +53,18 @@ const char *g_found;
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
 
+#define itoa_uint_pos(s, n, base, digits)                                \
+	do {                                                             \
+		STATIC_ASSERT(base > 0, "Using negative base in itoa_"); \
+		unsigned int n_ = n;                                     \
+		char *const end = (s) + UINT_LEN - 1;                    \
+		(s) = end;                                               \
+		do                                                       \
+			*(s)-- = (n_) % (base) + '0';                    \
+		while ((n_) /= 10);                                      \
+		digits = end - (s)++;                                    \
+	} while (0)
+
 static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filename, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -69,28 +84,30 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 			*g_lnlowerp = *g_lnp;
 			continue;
 		case EOF:
-			++g_NL;
-			g_lnlen = g_lnp - g_ln + 1;
-			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {
-				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
-				fwrite(filename, 1, flen, stdout);
-				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
-				printf("%d", g_NL);
-				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
-				fwrite(g_ln, 1, g_lnlen, stdout);
-			}
+#define PRINT_LN                                                                                                     \
+	do {                                                                                                         \
+			++g_NL;                                                                                      \
+			g_lnlen = g_lnp - g_ln + 1;                                                                  \
+			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                                   \
+				g_found = g_ln + (g_found - g_lnlower);                                              \
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);                                   \
+				fwrite(filename, 1, flen, stdout);                                                   \
+				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout); \
+				g_NLbufp = g_NLbuf;                                                                  \
+				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                    \
+				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                          \
+				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);                       \
+				fwrite(g_ln, 1, g_found - g_ln, stdout);                                             \
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED), stdout);                                       \
+				fwrite(g_found, 1, ptnlen, stdout);                                                  \
+				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET), stdout);                                   \
+				fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);            \
+			}                                                                                            \
+	} while (0)
+			PRINT_LN;
 			break;
 		case '\n':
-			++g_NL;
-			g_lnlen = g_lnp - g_ln + 1;
-			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {
-				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);
-				fwrite(filename, 1, flen, stdout);
-				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
-				printf("%d", g_NL);
-				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
-				fwrite(g_ln, 1, g_lnlen, stdout);
-			}
+			PRINT_LN;
 			g_lnp = g_ln;
 			g_lnlowerp = g_lnlower;
 			continue;

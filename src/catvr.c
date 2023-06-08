@@ -51,7 +51,7 @@ int g_c;
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
 
-/* s is not NUL terminated because we're using fwrite and returning the amount of digits */
+/* s is not NUL terminated because we're using fwrite and returning the amount of digits written */
 
 #define itoa_uint_pos(s, n, base, digits)                                \
 	do {                                                             \
