@@ -6,16 +6,18 @@
 
 #include <dirent.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
-
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../lib/libcatvr.h"
 
 #define DEBUG 0
 #define USE_FORK 0
+
+#if USE_FORK
+#	 include <sys/wait.h>
+#endif /* USE_FORK */
 
 #if NO_ANSI
 #	 define ANSI_RED ""
@@ -59,18 +61,16 @@ int forkmax;
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
 
-#define DEF_ITOA_T(typename, T, BASE)           \
-static INLINE T itoa_##typename(char **s, T n)  \
-{                                               \
-	char *const end = *s + (sizeof(n) * 8); \
-	*(*s = end) = '\0';                     \
-	do                                      \
-		*--*s = n % BASE + '0';         \
-	while (n /= 10);                        \
-	return end - *s;                        \
-}
-
-DEF_ITOA_T(uint10, unsigned int, 10)
+#define itoa_(s, n, base, digits)                                        \
+	do {                                                             \
+		STATIC_ASSERT(base > 0, "Using negative base in itoa_"); \
+		char *const end = s + (sizeof(n) * 8);                   \
+		*(s = end) = '\0';                                       \
+		do                                                       \
+			*--s = n % base + '0';                           \
+		while (n /= 10);                                         \
+		digits = end - s;                                        \
+	} while (0)
 
 static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 {
@@ -93,7 +93,7 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 			fwrite(filename, 1, flen, stdout);
 			fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
 			g_NLbufp = g_NLbuf;
-			g_NLbufdigits = itoa_uint10(&g_NLbufp, g_NL);
+			itoa_(g_NLbufp, g_NL, 10, g_NLbufdigits);
 			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);
 			fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
 			++g_NL;

@@ -1,6 +1,16 @@
 #ifndef CATVR_DEF_H
 #define CATVR_DEF_H
 
+#if defined(static_assert)
+#	define HAS_STATIC_ASSERT
+#	define STATIC_ASSERT(expr, msg) static_assert(expr, msg)
+#elif __STDC_VERSION__ >= 201112L
+#	define HAS_STATIC_ASSERT
+#	define STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
+#else
+#	define ASSERT(expr, msg)
+#endif // static_assert
+
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 24
 #	if _POSIX_C_SOURCE >= 199309L
 #		define HAS_GETC_UNLOCKED
