@@ -65,7 +65,7 @@ const char *g_found;
 		digits = end - (s)++;                                    \
 	} while (0)
 
-static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filename, const size_t flen)
+static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptnlen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
@@ -98,9 +98,9 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                          \
 				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);                       \
 				fwrite(g_ln, 1, g_found - g_ln, stdout);                                             \
-				fwrite(ANSI_RED, 1, sizeof(ANSI_RED), stdout);                                       \
+				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);                                   \
 				fwrite(g_found, 1, ptnlen, stdout);                                                  \
-				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET), stdout);                                   \
+				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout);                               \
 				fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);            \
 			}                                                                                            \
 	} while (0)
@@ -143,34 +143,42 @@ static INLINE void fgrep(const char *ptn, const size_t ptnlen, const char *filen
 			break;                 \
 		}
 
+#define DO_REG(USE_LEN, FUNC_REG)                                                                           \
+	if (USE_LEN)                                                                                        \
+		FUNC_REG(ptn, fulpath, ptnlen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen)); \
+	else                                                                                                \
+		FUNC_REG(ptn, fulpath, 0, 0)
+
+#define DO_DIR(FUNC_SELF)                                                                  \
+	IF_EXCLUDED_DO(ep->d_name, continue)                                               \
+	FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)
+
 #ifdef _DIRENT_HAVE_D_TYPE
 
-#define DO_IF_REG(FUNC_SELF, FUNC_REG, ...)                                                                 \
-	switch (ep->d_type) {                                                                               \
-		case DT_REG:                                                                                \
-			FUNC_REG(__VA_ARGS__, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));  \
-			break;                                                                              \
-		case DT_DIR:                                                                                \
-			/* skip . , .., .git, .vscode */                                                    \
-			IF_EXCLUDED_DO(ep->d_name, continue)                                                \
-			FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-	}                                                                                                   \
+#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, USE_LEN, FUNC_REG) \
+	switch (ep->d_type) {                                \
+		case DT_REG:                                 \
+			DO_REG(USE_LEN, FUNC_REG);           \
+			break;                               \
+		case DT_DIR:                                 \
+			/* skip . , .., .git, .vscode */     \
+			DO_DIR(FUNC_SELF);                   \
+	}                                                    \
 
 #else
 
-#define DO_IF_REG(FUNC_SELF, FUNC_REG, ...)                                                         \
-	if (unlikely(stat(dir, &g_st)))                                                             \
-		continue;                                                                           \
-	if (S_ISREG(g_st.st_mode)) {                                                                \
-		FUNC_REG(__VA_ARGS__, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen));  \
-	} else if (S_ISDIR(g_st.st_mode)) {                                                         \
-		IF_EXCLUDED_DO(ep->d_name, continue)                                                \
-		FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, USE_LEN, FUNC_REG) \
+	if (unlikely(stat(dir, &g_st)))                      \
+		continue;                                    \
+	if (S_ISREG(g_st.st_mode)) {                         \
+		DO_REG(USE_LEN, FUNC_REG);                   \
+	} else if (S_ISDIR(g_st.st_mode)) {                  \
+		DO_DIR(FUNC_SELF);                           \
 	}
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-#define DEF_FIND_T(F, DO, ...)                                                         \
+#define DEF_FIND_T(F, USE_LEN, DO)                                                     \
 static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
 {                                                                                      \
 	DIR *dp = opendir(dir);                                                        \
@@ -179,14 +187,13 @@ static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t
 	struct dirent *ep;                                                             \
 	char fulpath[MAX_PATH_LEN];                                                    \
 	while ((ep = readdir(dp))) {                                                   \
-		DO_IF_REG(F, DO, __VA_ARGS__);                                         \
+		IF_DIR_RECUR_IF_REG_DO(F, USE_LEN, DO)                                 \
 	}                                                                              \
 	closedir(dp);                                                                  \
 	return 1;                                                                      \
 }
 
-DEF_FIND_T(find_fgrep, fgrep,
-		ptn, ptnlen, fulpath)
+DEF_FIND_T(find_fgrep, 0, fgrep)
 
 static void usage(void)
 {
@@ -233,7 +240,7 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIR_, '/') - DIR_;
-			fgrep(ptn, strlen(ptn), DIR_, strlen(DIR_ + g_fuldirlen));
+			fgrep(ptn, DIR_, strlen(ptn), strlen(DIR_ + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIR_);
 			find_fgrep(ptn, strlen(ptn), DIR_, g_fuldirlen);
