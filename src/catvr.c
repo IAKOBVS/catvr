@@ -15,7 +15,7 @@
 #include "../lib/libcatvr.h"
 
 #define DEBUG 0
-#define USE_FORK 1
+#define USE_FORK 0
 
 #if NO_ANSI
 #	 define ANSI_RED ""
@@ -28,7 +28,10 @@ enum {
 	MAX_PATH_LEN = 4096,
 };
 
-int g_NL;
+unsigned int g_NL;
+char g_NLbuf[sizeof(g_NL) * 8 + 1];
+char *g_NLbufp;
+unsigned int g_NLbufdigits;
 size_t g_fuldirlen;
 struct stat g_st;
 char g_c;
@@ -56,6 +59,19 @@ int forkmax;
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
 
+#define DEF_ITOA_T(typename, T, BASE)           \
+static INLINE T itoa_##typename(char **s, T n)  \
+{                                               \
+	char *const end = *s + (sizeof(n) * 8); \
+	*(*s = end) = '\0';                     \
+	do                                      \
+		*--*s = n % BASE + '0';         \
+	while (n /= 10);                        \
+	return end - *s;                        \
+}
+
+DEF_ITOA_T(uint10, unsigned int, 10)
+
 static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 {
 	FILE *RESTRICT fp = fopen(filename, "r");
@@ -76,7 +92,9 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 			fwrite("\n" ANSI_RED, 1, sizeof("\n" ANSI_RED) - 1, stdout);
 			fwrite(filename, 1, flen, stdout);
 			fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
-			printf("%d", g_NL);
+			g_NLbufp = g_NLbuf;
+			g_NLbufdigits = itoa_uint10(&g_NLbufp, g_NL);
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);
 			fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
 			++g_NL;
 			continue;
