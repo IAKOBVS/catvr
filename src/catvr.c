@@ -13,7 +13,11 @@
 #include "../lib/libcatvr.h"
 
 #define DEBUG 0
-#define UINT_LEN 10
+
+#ifndef UINT_LEN
+#	define UINT_LEN 10
+#endif /* UINT_LEN */
+
 #define MAX_LINE_LEN 4096
 #define MAX_PATH_LEN 4096
 
@@ -50,20 +54,6 @@ int g_c;
 #ifdef HAS_FWRITE_UNLOCKED
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
-
-/* s is not NUL terminated because we're using fwrite and returning the amount of digits written */
-
-#define itoa_uint_pos(s, n, base, digits)                                \
-	do {                                                             \
-		STATIC_ASSERT(base > 0, "Using negative base in itoa_"); \
-		unsigned int n_ = n;                                     \
-		char *const end = (s) + UINT_LEN - 1;                    \
-		(s) = end;                                               \
-		do                                                       \
-			*(s)-- = (n_) % (base) + '0';                    \
-		while ((n_) /= 10);                                      \
-		digits = end - (s)++;                                    \
-	} while (0)
 
 static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 {

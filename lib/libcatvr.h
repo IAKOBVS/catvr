@@ -275,6 +275,21 @@
 
 #include <string.h>
 
+#define UINT_LEN 10
+
+/* Does not nul terminate */
+#define itoa_uint_pos(s, n, base, digits)                                \
+	do {                                                             \
+		STATIC_ASSERT(base > 0, "Using negative base in itoa_"); \
+		unsigned int n_ = n;                                     \
+		char *const end = (s) + UINT_LEN - 1;                    \
+		(s) = end;                                               \
+		do                                                       \
+			*(s)-- = (n_) % (base) + '0';                    \
+		while ((n_) /= 10);                                      \
+		digits = end - (s)++;                                    \
+	} while (0)
+
 static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)
 {
 	memcpy(path, dir, dlen);

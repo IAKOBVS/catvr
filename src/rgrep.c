@@ -11,7 +11,9 @@
 #include <sys/stat.h>
 #include "../lib/libcatvr.h"
 
-#define UINT_LEN 10
+#ifndef UINT_LEN
+#	define UINT_LEN 10
+#endif /* UINT_LEN */
 #define MAX_LINE_LEN 4096
 #define MAX_PATH_LEN 4096
 #define MAX_ARG_LEN 256
@@ -52,18 +54,6 @@ const char *g_found;
 #ifndef HAS_MEMMEM
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
-
-#define itoa_uint_pos(s, n, base, digits)                                \
-	do {                                                             \
-		STATIC_ASSERT(base > 0, "Using negative base in itoa_"); \
-		unsigned int n_ = n;                                     \
-		char *const end = (s) + UINT_LEN - 1;                    \
-		(s) = end;                                               \
-		do                                                       \
-			*(s)-- = (n_) % (base) + '0';                    \
-		while ((n_) /= 10);                                      \
-		digits = end - (s)++;                                    \
-	} while (0)
 
 static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptnlen, const size_t flen)
 {
