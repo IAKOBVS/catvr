@@ -13,11 +13,9 @@
 #include "../lib/libcatvr.h"
 
 #define DEBUG 0
-#define USE_FORK 0
-
-#if USE_FORK
-#	 include <sys/wait.h>
-#endif /* USE_FORK */
+#define UINT_LEN 10
+#define MAX_LINE_LEN 4096
+#define MAX_PATH_LEN 4096
 
 #if NO_ANSI
 #	 define ANSI_RED ""
@@ -25,21 +23,13 @@
 #	 define ANSI_RESET ""
 #endif /* NO_ANSI */
 
-enum {
-	MAX_LINE_LEN = 4096,
-	MAX_PATH_LEN = 4096,
-};
-
 unsigned int g_NL;
-char g_NLbuf[sizeof(g_NL) * 8 + 1];
+char g_NLbuf[UINT_LEN];
 char *g_NLbufp;
 unsigned int g_NLbufdigits;
 size_t g_fuldirlen;
 struct stat g_st;
-char g_c;
-
-int forknum = 0;
-int forkmax;
+int g_c;
 
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
@@ -61,15 +51,18 @@ int forkmax;
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
 
-#define itoa_(s, n, base, digits)                                        \
+/* s is not NUL terminated because we're using fwrite and returning the amount of digits */
+
+#define itoa_uint_pos(s, n, base, digits)                                \
 	do {                                                             \
 		STATIC_ASSERT(base > 0, "Using negative base in itoa_"); \
-		char *const end = s + (sizeof(n) * 8);                   \
-		*(s = end) = '\0';                                       \
+		unsigned int n_ = n;                                     \
+		char *const end = (s) + UINT_LEN - 1;                    \
+		(s) = end;                                               \
 		do                                                       \
-			*--s = n % base + '0';                           \
-		while (n /= 10);                                         \
-		digits = end - s;                                        \
+			*(s)-- = (n_) % (base) + '0';                    \
+		while ((n_) /= 10);                                      \
+		digits = end - (s)++;                                    \
 	} while (0)
 
 static INLINE void catv(const char *RESTRICT filename, const size_t flen)
@@ -93,7 +86,7 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 			fwrite(filename, 1, flen, stdout);
 			fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout);
 			g_NLbufp = g_NLbuf;
-			itoa_(g_NLbufp, g_NL, 10, g_NLbufdigits);
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);
 			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);
 			fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);
 			++g_NL;
@@ -145,29 +138,7 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-#if USE_FORK
-			if (forknum == forkmax) {
-				int st;
-				pid_t child = wait(&st);
-				if (child > 0) {
-					--forknum;
-				}
-			}
-			pid_t pid = fork();
-			switch (pid) {
-			case 0:
-				catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
-				exit(0);
-				break;
-			case -1:
-				exit(1);
-				break;
-			default:
-				++forknum;
-			}
-#else
 			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
-#endif /* USE_FORK */
 			break;
 		case DT_DIR:
 			/* skip . , .., .git, .vscode */
@@ -196,13 +167,6 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 
 int main(int argc, char **argv)
 {
-#if USE_FORK
-	forkmax = sysconf(_SC_NPROCESSORS_CONF);
-	if (forkmax <= 0) {
-		perror("Can't get number of CPU cores with sysconf(_SC_NPROCESSORS_CONF)");
-		return EXIT_FAILURE;
-	}
-#endif /* USE_FORK */
 	if (unlikely(argc == 1))
 		goto GET_CWD;
 	switch (DIRECTORY[0]) {
