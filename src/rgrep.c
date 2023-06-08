@@ -84,25 +84,29 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			*g_lnlowerp = *g_lnp;
 			continue;
 		case EOF:
-#define PRINT_LN                                                                                                     \
-	do {                                                                                                         \
-			++g_NL;                                                                                      \
-			g_lnlen = g_lnp - g_ln + 1;                                                                  \
-			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                                   \
-				g_found = g_ln + (g_found - g_lnlower);                                              \
-				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);                                   \
-				fwrite(filename, 1, flen, stdout);                                                   \
-				fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout); \
-				g_NLbufp = g_NLbuf;                                                                  \
-				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                    \
-				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                          \
-				fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout);                       \
-				fwrite(g_ln, 1, g_found - g_ln, stdout);                                             \
-				fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout);                                   \
-				fwrite(g_found, 1, ptnlen, stdout);                                                  \
-				fwrite(ANSI_RESET, 1, sizeof(ANSI_RESET) - 1, stdout);                               \
-				fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);            \
-			}                                                                                            \
+
+#define PRINT_LITERAL(s)                    \
+	fwrite(s, 1, sizeof(s) - 1, stdout)
+
+#define PRINT_LN                                                                                          \
+	do {                                                                                              \
+			++g_NL;                                                                           \
+			g_lnlen = g_lnp - g_ln + 1;                                                       \
+			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
+				g_found = g_ln + (g_found - g_lnlower);                                   \
+				PRINT_LITERAL(ANSI_RED);                                                  \
+				fwrite(filename, 1, flen, stdout);                                        \
+				PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                 \
+				g_NLbufp = g_NLbuf;                                                       \
+				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
+				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                               \
+				PRINT_LITERAL(ANSI_RESET ":");                                            \
+				fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
+				PRINT_LITERAL(ANSI_RED);                                                  \
+				fwrite(g_found, 1, ptnlen, stdout);                                       \
+				PRINT_LITERAL(ANSI_RESET);                                                \
+				fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
+			}                                                                                 \
 	} while (0)
 			PRINT_LN;
 			break;
@@ -143,7 +147,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			break;                 \
 		}
 
-#define DO_REG(USE_LEN, FUNC_REG)                                                                           \
+#define DO_REG(FUNC_REG, USE_LEN)                                                                           \
 	if (USE_LEN)                                                                                        \
 		FUNC_REG(ptn, fulpath, ptnlen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen)); \
 	else                                                                                                \
@@ -155,10 +159,10 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
-#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, USE_LEN, FUNC_REG) \
+#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
 	switch (ep->d_type) {                                \
 		case DT_REG:                                 \
-			DO_REG(USE_LEN, FUNC_REG);           \
+			DO_REG(FUNC_REG, USE_LEN);           \
 			break;                               \
 		case DT_DIR:                                 \
 			/* skip . , .., .git, .vscode */     \
@@ -167,18 +171,18 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 
 #else
 
-#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, USE_LEN, FUNC_REG) \
+#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
 	if (unlikely(stat(dir, &g_st)))                      \
 		continue;                                    \
 	if (S_ISREG(g_st.st_mode)) {                         \
-		DO_REG(USE_LEN, FUNC_REG);                   \
+		DO_REG(FUNC_REG, USE_LEN);                   \
 	} else if (S_ISDIR(g_st.st_mode)) {                  \
 		DO_DIR(FUNC_SELF);                           \
 	}
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-#define DEF_FIND_T(F, USE_LEN, DO)                                                     \
+#define DEF_FIND_T(F, DO, USE_LEN)                                                     \
 static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
 {                                                                                      \
 	DIR *dp = opendir(dir);                                                        \
@@ -187,13 +191,13 @@ static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t
 	struct dirent *ep;                                                             \
 	char fulpath[MAX_PATH_LEN];                                                    \
 	while ((ep = readdir(dp))) {                                                   \
-		IF_DIR_RECUR_IF_REG_DO(F, USE_LEN, DO)                                 \
+		IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                 \
 	}                                                                              \
 	closedir(dp);                                                                  \
 	return 1;                                                                      \
 }
 
-DEF_FIND_T(find_fgrep, 0, fgrep)
+DEF_FIND_T(find_fgrep, fgrep, 1)
 
 static void usage(void)
 {
