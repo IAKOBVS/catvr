@@ -80,7 +80,6 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 
 #define PRINT_LN                                                                                          \
 	do {                                                                                              \
-			++g_NL;                                                                           \
 			g_lnlen = g_lnp - g_ln + 1;                                                       \
 			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
 				g_found = g_ln + (g_found - g_lnlower);                                   \
@@ -91,7 +90,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
 				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                               \
 				PRINT_LITERAL(ANSI_RESET ":");                                            \
-				fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
+				fwrite(g_ln + 1, 1, g_found - g_ln - 1, stdout);                          \
 				PRINT_LITERAL(ANSI_RED);                                                  \
 				fwrite(g_found, 1, ptnlen, stdout);                                       \
 				PRINT_LITERAL(ANSI_RESET);                                                \
@@ -102,6 +101,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			break;
 		case '\n':
 			PRINT_LN;
+			++g_NL;
 			g_lnp = g_ln;
 			g_lnlowerp = g_lnlower;
 			continue;
@@ -137,10 +137,10 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			break;                 \
 		}
 
-#define DO_REG(FUNC_REG, USE_LEN)                                                                           \
-	if (USE_LEN)                                                                                        \
-		FUNC_REG(ptn, fulpath, ptnlen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + dlen)); \
-	else                                                                                                \
+#define DO_REG(FUNC_REG, USE_LEN)                                                                                      \
+	if (USE_LEN)                                                                                                   \
+		FUNC_REG(ptn, fulpath, ptnlen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
+	else                                                                                                           \
 		FUNC_REG(ptn, fulpath, 0, 0)
 
 #define DO_DIR(FUNC_SELF)                                                                  \
