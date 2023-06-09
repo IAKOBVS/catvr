@@ -14,22 +14,22 @@
 #ifndef UINT_LEN
 #	define UINT_LEN 10
 #endif /* UINT_LEN */
-#define MAX_LINE_LEN 4096
+#define MAX_LINE_LEN 512
 #define MAX_PATH_LEN 4096
 #define MAX_ARG_LEN 256
 
+int g_lnlen;
 char g_ln[MAX_LINE_LEN];
 char g_lnlower[MAX_LINE_LEN];
 char *g_lnlowerp;
 char *g_lnp;
-int g_lnlen;
-unsigned int g_NL;
 char g_NLbuf[UINT_LEN];
 char *g_NLbufp;
+unsigned int g_NL;
 unsigned int g_NLbufdigits;
 int g_fuldirlen;
-struct stat g_st;
 const char *g_found;
+struct stat g_st;
 
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
@@ -55,6 +55,21 @@ const char *g_found;
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
 
+#define CPY_N_ADV(dst, src)                        \
+	do {                                       \
+		memcpy(dst, src, sizeof(src) - 1); \
+		(dst) += (sizeof(src) - 1);        \
+	} while (0)
+
+#define CPY_N_ADV_LEN(dst, src, n)   \
+	do {                         \
+		memcpy(dst, src, n); \
+		(dst) += (n);        \
+	} while (0)
+
+#define PRINT_LITERAL(s)                    \
+	fwrite(s, 1, sizeof(s) - 1, stdout)
+
 static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptnlen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -64,53 +79,60 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 	g_lnp = g_ln;
 	g_lnlowerp = g_lnlower;
 	filename = filename + g_fuldirlen + 1;
-	for (;; ++g_lnp, ++g_lnlowerp) {
-		switch (*g_lnp = getc(fp)) {
-		CASE_UPPER
-			*g_lnlowerp = *g_lnp - 'A' + 'a';
-			continue;
-		default:
-		case '\t':
-			*g_lnlowerp = *g_lnp;
-			continue;
-		case EOF:
 
-#define PRINT_LITERAL(s)                    \
-	fwrite(s, 1, sizeof(s) - 1, stdout)
-
-#define PRINT_LN                                                                                          \
-	do {                                                                                              \
-			g_lnlen = g_lnp - g_ln + 1;                                                       \
-			if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
-				g_found = g_ln + (g_found - g_lnlower);                                   \
-				PRINT_LITERAL(ANSI_RED);                                                  \
-				fwrite(filename, 1, flen, stdout);                                        \
-				PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                 \
-				g_NLbufp = g_NLbuf;                                                       \
-				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
-				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                               \
-				PRINT_LITERAL(ANSI_RESET ":");                                            \
-				fwrite(g_ln + 1, 1, g_found - g_ln - 1, stdout);                          \
-				PRINT_LITERAL(ANSI_RED);                                                  \
-				fwrite(g_found, 1, ptnlen, stdout);                                       \
-				PRINT_LITERAL(ANSI_RESET);                                                \
-				fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
-			}                                                                                 \
+#define PRINT_LN                                                                                  \
+	do {                                                                                      \
+		g_lnlen = g_lnp - g_ln + 1;                                                       \
+		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
+			g_found = g_ln + (g_found - g_lnlower);                                   \
+			g_lnlowerp = g_lnlower;                                                   \
+			CPY_N_ADV(g_lnlowerp, ANSI_RED);                                          \
+			CPY_N_ADV_LEN(g_lnlowerp, filename, flen);                                \
+			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":" ANSI_GREEN);                         \
+			g_NLbufp = g_NLbuf;                                                       \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
+			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                       \
+			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                    \
+			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                     \
+			fwrite(g_ln + 1, 1, g_found - g_ln - 1, stdout);                          \
+			PRINT_LITERAL(ANSI_RED);                                                  \
+			fwrite(g_found, 1, ptnlen, stdout);                                       \
+			PRINT_LITERAL(ANSI_RESET);                                                \
+			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
+		}                                                                                 \
 	} while (0)
-			PRINT_LN;
-			break;
-		case '\n':
-			PRINT_LN;
-			++g_NL;
-			g_lnp = g_ln;
-			g_lnlowerp = g_lnlower;
-			continue;
-		case '\0':
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL
-			break;
-		}
-		break;
-	}
+
+	do {
+
+#define LOOP                                              \
+		switch (*g_lnp = getc(fp)) {              \
+		CASE_UPPER                                \
+			*g_lnlowerp = *g_lnp - 'A' + 'a'; \
+			break;                            \
+		default:                                  \
+		case '\t':                                \
+			*g_lnlowerp = *g_lnp;             \
+			break;                            \
+		case '\n':                                \
+			PRINT_LN;                         \
+			++g_NL;                           \
+			g_lnp = g_ln;                     \
+			g_lnlowerp = g_lnlower;           \
+			break;                            \
+		case EOF:                                 \
+			PRINT_LN;                         \
+		case '\0':                                \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL;           \
+			goto OUT;                         \
+		}                                         \
+		++g_lnp, ++g_lnlowerp
+
+		LOOP;
+		LOOP;
+		LOOP;
+		LOOP;
+	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
+OUT:
 	fclose(fp);
 }
 

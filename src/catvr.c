@@ -18,7 +18,7 @@
 #	define UINT_LEN 10
 #endif /* UINT_LEN */
 
-#define MAX_LINE_LEN 4096
+#define MAX_LINE_LEN 512
 #define MAX_PATH_LEN 4096
 
 #if NO_ANSI
@@ -27,6 +27,8 @@
 #	 define ANSI_RESET ""
 #endif /* NO_ANSI */
 
+char g_ln[MAX_LINE_LEN];
+char *g_lnp;
 unsigned int g_NL;
 char g_NLbuf[UINT_LEN];
 char *g_NLbufp;

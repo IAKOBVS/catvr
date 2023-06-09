@@ -18,7 +18,7 @@
 #	define UINT_LEN 10
 #endif /* UINT_LEN */
 
-#define MAX_LINE_LEN 4096
+#define MAX_LINE_LEN 512
 #define MAX_PATH_LEN 4096
 
 #if NO_ANSI
@@ -79,44 +79,42 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	CPY_N_ADV(g_lnp, ANSI_RED);
 	CPY_N_ADV_LEN(g_lnp, filename, flen);
 	CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":");
-	/* fwrite(ANSI_RED, 1, sizeof(ANSI_RED) - 1, stdout); */
-	/* fwrite(filename, 1, flen, stdout); */
-	/* fwrite(ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":", 1, sizeof(ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":") - 1, stdout); */
 	g_NL = 2;
-	for (;; ++g_lnp) {
-		switch (*g_lnp = getc(fp)) {
-		default:
-		case '\t':
-			/* putchar(g_c); */
-			continue;
-		case '\n':
-			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);
-			g_lnp = g_ln;
-			CPY_N_ADV(g_lnp, ANSI_RED);
-			CPY_N_ADV_LEN(g_lnp, filename, flen);
-			CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);
-			g_NLbufp = g_NLbuf;
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);
-			CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);
-			CPY_N_ADV(g_lnp, ANSI_RESET ":");
-			/* fwrite("\n" ANSI_RED, 1, sizeof("\n" ANSI_RED) - 1, stdout); */
-			/* fwrite(filename, 1, flen, stdout); */
-			/* fwrite(ANSI_RESET ":" ANSI_GREEN, 1, sizeof(ANSI_RESET ":" ANSI_GREEN) - 1, stdout); */
-			/* fwrite(g_NLbufp, 1, g_NLbufdigits, stdout); */
-			/* fwrite(ANSI_RESET ":", 1, sizeof(ANSI_RESET ":") - 1, stdout); */
-			--g_lnp;
-			++g_NL;
-			continue;
-		case EOF:
-			*g_lnp = '\n';
-			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);
-			/* putchar('\n'); */
-		case '\0':
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL
-			;
-		}
-		break;
-	}
+
+#define LOOP                                                              \
+		switch (*g_lnp = getc(fp)) {                              \
+		default:                                                  \
+		case '\t':                                                \
+			break;                                            \
+		case '\n':                                                \
+			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
+			g_lnp = g_ln;                                     \
+			CPY_N_ADV(g_lnp, ANSI_RED);                       \
+			CPY_N_ADV_LEN(g_lnp, filename, flen);             \
+			CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);      \
+			g_NLbufp = g_NLbuf;                               \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
+			CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);    \
+			CPY_N_ADV(g_lnp, ANSI_RESET ":");                 \
+			--g_lnp;                                          \
+			++g_NL;                                           \
+			break;                                            \
+		case EOF:                                                 \
+			*g_lnp = '\n';                                    \
+			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
+		case '\0':                                                \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL                            \
+			goto OUT;                                         \
+		}                                                         \
+		++g_lnp
+
+	do {
+		LOOP;
+		LOOP;
+		LOOP;
+		LOOP;
+	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
+OUT:
 	fclose(fp);
 }
 
