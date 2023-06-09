@@ -22,9 +22,9 @@
 #define MAX_PATH_LEN 4096
 
 #if NO_ANSI
-#	 define ANSI_RED ""
-#	 define ANSI_GREEN ""
-#	 define ANSI_RESET ""
+#	define ANSI_RED ""
+#	define ANSI_GREEN ""
+#	define ANSI_RESET ""
 #endif /* NO_ANSI */
 
 char g_ln[MAX_LINE_LEN];
@@ -57,17 +57,13 @@ int g_c;
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #endif
 
-#define CPY_N_ADV(dst, src)                        \
-	do {                                       \
-		memcpy(dst, src, sizeof(src) - 1); \
-		(dst) += (sizeof(src) - 1);        \
-	} while (0)
-
 #define CPY_N_ADV_LEN(dst, src, n)   \
 	do {                         \
 		memcpy(dst, src, n); \
 		(dst) += (n);        \
 	} while (0)
+
+#define CPY_N_ADV(dst, src) CPY_N_ADV_LEN(dst, src, sizeof(src) - 1)
 
 static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 {
@@ -81,32 +77,32 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":");
 	g_NL = 2;
 
-#define LOOP                                                              \
-		switch (*g_lnp = getc(fp)) {                              \
-		default:                                                  \
-		case '\t':                                                \
-			break;                                            \
-		case '\n':                                                \
-			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-			g_lnp = g_ln;                                     \
-			CPY_N_ADV(g_lnp, ANSI_RED);                       \
-			CPY_N_ADV_LEN(g_lnp, filename, flen);             \
-			CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);      \
-			g_NLbufp = g_NLbuf;                               \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
-			CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);    \
-			CPY_N_ADV(g_lnp, ANSI_RESET ":");                 \
-			--g_lnp;                                          \
-			++g_NL;                                           \
-			break;                                            \
-		case EOF:                                                 \
-			*g_lnp = '\n';                                    \
-			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-		case '\0':                                                \
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL                            \
-			goto OUT;                                         \
-		}                                                         \
-		++g_lnp
+#define LOOP                                                      \
+	switch (*g_lnp = getc(fp)) {                              \
+	default:                                                  \
+	case '\t':                                                \
+		break;                                            \
+	case '\n':                                                \
+		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
+		g_lnp = g_ln;                                     \
+		CPY_N_ADV(g_lnp, ANSI_RED);                       \
+		CPY_N_ADV_LEN(g_lnp, filename, flen);             \
+		CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);      \
+		g_NLbufp = g_NLbuf;                               \
+		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
+		CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);    \
+		CPY_N_ADV(g_lnp, ANSI_RESET ":");                 \
+		--g_lnp;                                          \
+		++g_NL;                                           \
+		break;                                            \
+	case EOF:                                                 \
+		*g_lnp = '\n';                                    \
+		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
+	case '\0':                                                \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL                    \
+		goto OUT;                                         \
+	}                                                         \
+	++g_lnp
 
 	do {
 		LOOP;
@@ -141,6 +137,7 @@ OUT:
 			break;                 \
 		}
 
+
 static void findall(const char *RESTRICT dir, const size_t dlen)
 {
 	DIR *RESTRICT dp = opendir(dir);
@@ -152,25 +149,30 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #if DEBUG
 		printf("d->name: %s\n", ep->d_name);
 #endif /* DEBUG */
+
+#define FIND_DO_REG                                                                          \
+	catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
+
+#define FIND_DO_DIR                                                          \
+	IF_EXCLUDED_DO(ep->d_name, continue)                                 \
+	findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)
+
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
+			FIND_DO_REG;
 			break;
 		case DT_DIR:
-			/* skip . , .., .git, .vscode */
-			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
+			FIND_DO_DIR;
 			break;
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
 			return;
 		if (S_ISREG(g_st.st_mode)) {
-			catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1);
+			FIND_DO_REG;
 		} else if (S_ISDIR(g_st.st_mode)) {
-			IF_EXCLUDED_DO(ep->d_name, continue)
-			findall(fulpath, dlen = appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
+			FIND_DO_DIR;
 		}
 #endif /* _DIRENT_HAVE_D_TYPE */
 #if DEBUG
