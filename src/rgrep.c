@@ -9,7 +9,9 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include "../lib/libcatvr.h"
+#include <unistd.h>
 
 #ifndef UINT_LEN
 #	define UINT_LEN 10
@@ -165,9 +167,23 @@ OUT:
 	else                                                                                                           \
 		FUNC_REG(ptn, fulpath, 0, 0)
 
-#define DO_DIR(FUNC_SELF)                                                                  \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                               \
-	FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)
+#define DO_DIR(FUNC_SELF)                                                                           \
+	IF_EXCLUDED_DO(ep->d_name, continue)                                                        \
+	if (pid > 0) {                                                                              \
+		if (g_child_tot == g_child_max) {                                                   \
+			wait(NULL);                                                                 \
+			--g_child_tot;                                                              \
+		}                                                                                   \
+		pid = fork();                                                                       \
+	}                                                                                           \
+	switch (pid) {                                                                              \
+	case 0:                                                                                     \
+		FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+		break;                                                                              \
+	default:                                                                                    \
+		++g_child_tot;                                                                      \
+	case -1:;                                                                                   \
+	}
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
@@ -193,6 +209,10 @@ OUT:
 	}
 
 #endif /* _DIRENT_HAVE_D_TYPE */
+
+long g_child_max;
+unsigned int g_child_tot;
+pid_t pid = 1;
 
 #define DEF_FIND_T(F, DO, USE_LEN)                                                     \
 static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
@@ -222,9 +242,14 @@ DEF_FIND_T(find_fgrep, fgrep, 1)
 
 int main(int argc, char **argv)
 {
-	if ((argc == 1) || (!argv[0])) {
-		execlp("catvrln", "catvrln", NULL);
+	if (argc == 1 || !argv[0]) {
+		execlp("rcat", "rcat", NULL);
 		return EXIT_SUCCESS;
+	}
+	g_child_max = sysconf(_SC_NPROCESSORS_CONF);
+	if (unlikely(g_child_max == -1)) {
+		fputs("Can't get number of cores!", stderr);
+		return EXIT_FAILURE;
 	}
 	char ptn[MAX_ARG_LEN];
 	char *ptnp = ptn;
@@ -252,7 +277,7 @@ int main(int argc, char **argv)
 	default:
 		if (unlikely(stat(DIR_, &g_st))) {
 			printf("%s not a valid file or dir\n", DIR_);
-			return EXIT_FAILURE;
+			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIR_, '/') - DIR_;
@@ -270,5 +295,5 @@ int main(int argc, char **argv)
 		find_fgrep(ptn, strlen(ptn), cwd, g_fuldirlen);
 		break;
 	}
-	return EXIT_SUCCESS;
+	return 0;
 }
