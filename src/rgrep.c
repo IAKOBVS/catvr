@@ -211,21 +211,21 @@ static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
 
-static void usage(void)
-{
-	puts("Usage: ./rgrep <ptn> <dir or file> \nif <dir or file> is not provided, it defaults to $PWD\n");
-	exit(1);
-}
+/* static void usage(void) */
+/* { */
+/* 	puts("Usage: ./rgrep <ptn> <dir or file> \nif <dir or file> is not provided, it defaults to $PWD\n"); */
+/* 	exit(1); */
+/* } */
 
 #define PTN_ argv[1]
 #define DIR_ argv[2]
 
 int main(int argc, char **argv)
 {
-	if (unlikely(argc == 1))
-		usage();
-	if (unlikely(!PTN_[0]))
-		usage();
+	if ((argc == 1) || (!argv[0])) {
+		execlp("catvrln", "catvrln", NULL);
+		return EXIT_SUCCESS;
+	}
 	char ptn[MAX_ARG_LEN];
 	char *ptnp = ptn;
 	g_lnp = PTN_;
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 	default:
 		if (unlikely(stat(DIR_, &g_st))) {
 			printf("%s not a valid file or dir\n", DIR_);
-			return 1;
+			return EXIT_FAILURE;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIR_, '/') - DIR_;
@@ -270,5 +270,5 @@ int main(int argc, char **argv)
 		find_fgrep(ptn, strlen(ptn), cwd, g_fuldirlen);
 		break;
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
