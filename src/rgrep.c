@@ -385,7 +385,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                    \
 			flockfile(stdout);                                                        \
 			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                     \
-			fwrite(g_ln, 1, g_found - g_ln - 1, stdout);                              \
+			fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
 			PRINT_LITERAL(ANSI_RED);                                                  \
 			fwrite(g_found, 1, ptnlen, stdout);                                       \
 			PRINT_LITERAL(ANSI_RESET);                                                \
