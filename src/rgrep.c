@@ -4,13 +4,13 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include "../lib/libcatvr.h"
+#include "g_memmem.h"
 #include <dirent.h>
-#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include "../lib/libcatvr.h"
 #include <unistd.h>
 
 #ifndef UINT_LEN
@@ -20,18 +20,18 @@
 #define MAX_PATH_LEN 4096
 #define MAX_ARG_LEN 256
 
-int g_lnlen;
 char g_ln[MAX_LINE_LEN];
 char g_lnlower[MAX_LINE_LEN];
 char *g_lnlowerp;
 char *g_lnp;
-char g_NLbuf[UINT_LEN];
 char *g_NLbufp;
+char g_NLbuf[UINT_LEN];
+const char *g_found;
+int g_c;
 unsigned int g_NL;
 unsigned int g_NLbufdigits;
-int g_fuldirlen;
-int g_c;
-const char *g_found;
+unsigned int g_fuldirlen;
+unsigned int g_lnlen;
 struct stat g_st;
 
 #ifdef HAS_FGETC_UNLOCKED
@@ -64,7 +64,15 @@ struct stat g_st;
 #endif /* !HAS_MEMMEM */
 
 int g_wanted;
-enum { ACCEPT = 0, REJECT, NEWLINE, UPPER, LOWER, WANTED, WANTED_UPPER, FILLED, END_OF_FILE };
+enum { ACCEPT = 0,
+	REJECT,
+	NEWLINE,
+	UPPER,
+	LOWER,
+	WANTED,
+	WANTED_UPPER,
+	FILLED,
+	END_OF_FILE };
 unsigned char g_table[257] = {
 
 	/* EOF */
@@ -356,7 +364,7 @@ unsigned char g_table[257] = {
 		(dst) += (n);        \
 	} while (0)
 
-#define PRINT_LITERAL(s)                    \
+#define PRINT_LITERAL(s) \
 	fwrite(s, 1, sizeof(s) - 1, stdout)
 
 static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptnlen, const size_t flen)
@@ -373,10 +381,11 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 #define PRINT_LN(i)                                                                               \
 	do {                                                                                      \
 		g_lnlen = (g_lnp + i) - g_ln + 1;                                                 \
-		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
+		if ((g_found = g_memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                      \
 			g_found = g_ln + (g_found - g_lnlower);                                   \
 			g_NLbufp = g_NLbuf;                                                       \
 			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
+			flockfile(stdout);                                                        \
 			PRINT_LITERAL(ANSI_RED);                                                  \
 			fwrite(filename, 1, flen, stdout);                                        \
 			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                 \
@@ -387,6 +396,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			fwrite(g_found, 1, ptnlen, stdout);                                       \
 			PRINT_LITERAL(ANSI_RESET);                                                \
 			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
+			funlockfile(stdout);                                                      \
 		}                                                                                 \
 	} while (0)
 
@@ -435,7 +445,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 		LOOP_FGREP(2);
 		LOOP_FGREP(3);
 		g_lnp += 4, g_lnlowerp += 4;
-CONT:;
+	CONT:;
 	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
 OUT:
 	fclose(fp);
@@ -490,26 +500,26 @@ OUT:
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
-#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)  \
-	switch (ep->d_type) {                                 \
-		case DT_REG:                                  \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN); \
-			break;                                \
-		case DT_DIR:                                  \
-			/* skip . , .., .git, .vscode */      \
-			FIND_FGREP_DO_DIR(FUNC_SELF);         \
-	}                                                     \
+#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
+		switch (ep->d_type) {                                \
+		case DT_REG:                                         \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
+			break;                                       \
+		case DT_DIR:                                         \
+			/* skip . , .., .git, .vscode */             \
+			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		}
 
 #else
 
-#define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-	if (unlikely(stat(dir, &g_st)))                      \
-		continue;                                    \
-	if (S_ISREG(g_st.st_mode)) {                         \
-		FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-	} else if (S_ISDIR(g_st.st_mode)) {                  \
-		FIND_FGREP_DO_DIR(FUNC_SELF);                \
-	}
+#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
+		if (unlikely(stat(dir, &g_st)))                      \
+			continue;                                    \
+		if (S_ISREG(g_st.st_mode)) {                         \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
+		} else if (S_ISDIR(g_st.st_mode)) {                  \
+			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		}
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
@@ -517,20 +527,20 @@ long g_child_max;
 unsigned int g_child_tot;
 pid_t pid = 1;
 
-#define DEF_FIND_T(F, DO, USE_LEN)                                                     \
-static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
-{                                                                                      \
-	DIR *dp = opendir(dir);                                                        \
-	if (unlikely(!dp))                                                             \
-		return 0;                                                              \
-	struct dirent *ep;                                                             \
-	char fulpath[MAX_PATH_LEN];                                                    \
-	while ((ep = readdir(dp))) {                                                   \
-		IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                 \
-	}                                                                              \
-	closedir(dp);                                                                  \
-	return 1;                                                                      \
-}
+#define DEF_FIND_T(F, DO, USE_LEN)                                                             \
+	static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
+	{                                                                                      \
+		DIR *dp = opendir(dir);                                                        \
+		if (unlikely(!dp))                                                             \
+			return 0;                                                              \
+		struct dirent *ep;                                                             \
+		char fulpath[MAX_PATH_LEN];                                                    \
+		while ((ep = readdir(dp))) {                                                   \
+			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                 \
+		}                                                                              \
+		closedir(dp);                                                                  \
+		return 1;                                                                      \
+	}
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
 
@@ -546,30 +556,32 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":");
 	g_NL = 2;
 
-#define LOOP_CAT(i)                                               \
-	switch (g_lnp[i] = getc(fp)) {                            \
-	default:                                                  \
-	case '\t':                                                \
-		break;                                            \
-	case '\n':                                                \
-		fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);  \
-		g_NLbufp = g_NLbuf;                               \
-		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
-		PRINT_LITERAL(ANSI_RED);                          \
-		fwrite(filename, 1, flen, stdout);                \
-		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
-		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
-		PRINT_LITERAL(ANSI_RESET ":");                    \
-		++g_NL;                                           \
-		g_lnp = g_ln;                                     \
-		goto CONT;                                        \
-	case EOF:                                                 \
-		g_lnp[i] = '\n';                                  \
-		fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);  \
-	case '\0':                                                \
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL                    \
-		goto OUT;                                         \
-	}                                                         \
+#define LOOP_CAT(i)                                                     \
+	switch (g_lnp[i] = getc(fp)) {                                  \
+	default:                                                        \
+	case '\t':                                                      \
+		break;                                                  \
+	case '\n':                                                      \
+		g_NLbufp = g_NLbuf;                                     \
+		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);       \
+		flockfile(stdout);                                      \
+		fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);        \
+		PRINT_LITERAL(ANSI_RED);                                \
+		fwrite(filename, 1, flen, stdout);                      \
+		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);               \
+		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);             \
+		PRINT_LITERAL(ANSI_RESET ":");                          \
+		funlockfile(stdout);                                    \
+		++g_NL;                                                 \
+		g_lnp = g_ln;                                           \
+		goto CONT;                                              \
+	case EOF:                                                       \
+		g_lnp[i] = '\n';                                        \
+		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout); \
+	case '\0':                                                      \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL                          \
+		goto OUT;                                               \
+	}
 
 	do {
 		LOOP_CAT(0);
@@ -577,7 +589,7 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 		LOOP_CAT(2);
 		LOOP_CAT(3);
 		g_lnp += 4;
-CONT:;
+	CONT:;
 	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
 OUT:
 	fclose(fp);
@@ -595,7 +607,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 		printf("d->name: %s\n", ep->d_name);
 #endif /* DEBUG */
 
-#define FIND_CAT_DO_REG                                                                          \
+#define FIND_CAT_DO_REG \
 	catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
 
 #define FIND_CAT_DO_DIR                                                               \
@@ -628,11 +640,10 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #else
 		if (unlikely(stat(dir, &g_st)))
 			return;
-		if (S_ISREG(g_st.st_mode)) {
+		if (S_ISREG(g_st.st_mode))
 			FIND_CAT_DO_REG;
-		} else if (S_ISDIR(g_st.st_mode)) {
+		else if (S_ISDIR(g_st.st_mode))
 			FIND_CAT_DO_DIR;
-		}
 #endif /* _DIRENT_HAVE_D_TYPE */
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
@@ -647,6 +658,29 @@ static void get_dir(char *buf)
 	g_fuldirlen = strlen(buf);
 }
 
+static INLINE void set_pattern(char *dst, const char *src)
+{
+	for (;; ++src, ++dst) {
+		switch (*src) {
+			CASE_UPPER
+			*dst = *src - 'A' + 'a';
+			continue;
+		default:
+			*dst = *src;
+			continue;
+		case '\0':;
+		}
+		break;
+	}
+	*dst = '\0';
+}
+
+static INLINE void init_table(char ptn)
+{
+	g_table[(unsigned char )ptn + 1] = WANTED;
+	g_table[(unsigned char )ptn - 'a' + 'A' + 1] = WANTED_UPPER;
+}
+
 #define PTN_ argv[1]
 #define DIR_ argv[2]
 
@@ -657,7 +691,6 @@ int main(int argc, char **argv)
 		fputs("Can't get number of cores!", stderr);
 		return EXIT_FAILURE;
 	}
-	setvbuf(stdout, NULL, _IOFBF, BUFSIZ);
 	if (argc == 1 || !argv[1][0]) {
 		char cwd[MAX_PATH_LEN];
 		get_dir(cwd);
@@ -665,23 +698,8 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 	char ptn[MAX_ARG_LEN];
-	char *ptnp = ptn;
-	g_lnp = PTN_;
-	for (;; ++g_lnp, ++ptnp) {
-		switch (*g_lnp) {
-		CASE_UPPER
-			*ptnp = *g_lnp - 'A' + 'a';
-			continue;
-		default:
-			*ptnp = *g_lnp;
-			continue;
-		case '\0':;
-		}
-		break;
-	}
-	*ptnp = '\0';
-	g_table[(unsigned char)*ptn + 1] = WANTED;
-	g_table[(unsigned char)*ptn - 'a' + 'A' + 1] = WANTED_UPPER;
+	set_pattern(ptn, PTN_);
+	init_table(*ptn);
 	if (argc == 2)
 		goto GET_CWD;
 	switch (DIR_[0]) {
