@@ -63,7 +63,7 @@ struct stat g_st;
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
 
-int g_wanted;
+int g_first_match;
 enum { ACCEPT = 0,
 	REJECT,
 	NEWLINE,
@@ -372,72 +372,72 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
-	g_wanted = 0;
+	g_first_match = 0;
 	g_NL = 1;
 	g_lnp = g_ln;
 	g_lnlowerp = g_lnlower;
 	filename = filename + g_fuldirlen + 1;
 
-#define PRINT_LN(i)                                                                               \
-	do {                                                                                      \
-		g_lnlen = (g_lnp + i) - g_ln + 1;                                                 \
-		if ((g_found = g_memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                      \
-			g_found = g_ln + (g_found - g_lnlower);                                   \
-			g_NLbufp = g_NLbuf;                                                       \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
-			flockfile(stdout);                                                        \
-			PRINT_LITERAL(ANSI_RED);                                                  \
-			fwrite(filename, 1, flen, stdout);                                        \
-			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                 \
-			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                               \
-			PRINT_LITERAL(ANSI_RESET ":");                                            \
-			fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
-			PRINT_LITERAL(ANSI_RED);                                                  \
-			fwrite(g_found, 1, ptnlen, stdout);                                       \
-			PRINT_LITERAL(ANSI_RESET);                                                \
-			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
-			funlockfile(stdout);                                                      \
-		}                                                                                 \
+#define PRINT_LN(i)                                                                                          \
+	do {                                                                                                 \
+		g_lnlen = (g_lnp + i) - g_ln + 1;                                                            \
+		if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, ptn, ptnlen))) { \
+			g_found = g_ln + (g_found - g_lnlower);                                              \
+			g_NLbufp = g_NLbuf;                                                                  \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                    \
+			flockfile(stdout);                                                                   \
+			PRINT_LITERAL(ANSI_RED);                                                             \
+			fwrite(filename, 1, flen, stdout);                                                   \
+			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                            \
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                          \
+			PRINT_LITERAL(ANSI_RESET ":");                                                       \
+			fwrite(g_ln, 1, g_found - g_ln, stdout);                                             \
+			PRINT_LITERAL(ANSI_RED);                                                             \
+			fwrite(g_found, 1, ptnlen, stdout);                                                  \
+			PRINT_LITERAL(ANSI_RESET);                                                           \
+			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);            \
+			funlockfile(stdout);                                                                 \
+		}                                                                                            \
 	} while (0)
 
 	do {
 
-#define LOOP_FGREP(i)                                    \
-	do {                                             \
-		g_c = fgetc(fp);                         \
-		switch (g_table[g_c + 1]) {              \
-		case WANTED_UPPER:                       \
-			g_wanted = 1;                    \
-			/* FALLTHROUGH */                \
-		case UPPER:                              \
-			g_lnp[i] = g_c;                  \
-			g_lnlowerp[i] = g_c - 'A' + 'a'; \
-			break;                           \
-		case WANTED:                             \
-			g_wanted = 1;                    \
-			/* FALLTHROUGH */                \
-		default:                                 \
-			g_lnp[i] = g_c;                  \
-			g_lnlowerp[i] = g_c;             \
-			break;                           \
-		case NEWLINE:                            \
-			g_lnp[i] = '\n';                 \
-			if (g_wanted) {                  \
-				PRINT_LN(i);             \
-				g_wanted = 0;            \
-			}                                \
-			++g_NL;                          \
-			g_lnp = g_ln;                    \
-			g_lnlowerp = g_lnlower;          \
-			goto CONT;                       \
-		case END_OF_FILE:                        \
-			g_lnp[i] = '\n';                 \
-			if (g_wanted)                    \
-				PRINT_LN(i);             \
-			/* FALLTHROUGH */                \
-		case REJECT:                             \
-			goto OUT;                        \
-		}                                        \
+#define LOOP_FGREP(i)                                                                     \
+	do {                                                                              \
+		g_c = fgetc(fp);                                                          \
+		switch (g_table[g_c + 1]) {                                               \
+		case WANTED_UPPER:                                                        \
+			g_first_match = g_first_match ? g_first_match : g_lnp + i - g_ln; \
+			/* FALLTHROUGH */                                                 \
+		case UPPER:                                                               \
+			g_lnp[i] = g_c;                                                   \
+			g_lnlowerp[i] = g_c - 'A' + 'a';                                  \
+			break;                                                            \
+		case WANTED:                                                              \
+			g_first_match = g_first_match ? g_first_match : g_lnp + i - g_ln; \
+			/* FALLTHROUGH */                                                 \
+		default:                                                                  \
+			g_lnp[i] = g_c;                                                   \
+			g_lnlowerp[i] = g_c;                                              \
+			break;                                                            \
+		case NEWLINE:                                                             \
+			g_lnp[i] = '\n';                                                  \
+			if (g_first_match) {                                              \
+				PRINT_LN(i);                                              \
+				g_first_match = 0;                                        \
+			}                                                                 \
+			++g_NL;                                                           \
+			g_lnp = g_ln;                                                     \
+			g_lnlowerp = g_lnlower;                                           \
+			goto CONT;                                                        \
+		case END_OF_FILE:                                                         \
+			g_lnp[i] = '\n';                                                  \
+			if (g_first_match)                                                \
+				PRINT_LN(i);                                              \
+			/* FALLTHROUGH */                                                 \
+		case REJECT:                                                              \
+			goto OUT;                                                         \
+		}                                                                         \
 	} while (0)
 
 		LOOP_FGREP(0);
