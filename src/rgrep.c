@@ -52,7 +52,9 @@ struct stat g_st;
 
 #ifdef HAS_FWRITE_UNLOCKED
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
+#	define fwrite_locked(s, sz, N, fp) fwrite(s, sz, N, fp)
 #else
+#	define fwrite_locked(s, sz, N, fp) fwrite(s, sz, N, fp)
 #	define flockfile(fp)
 #	define funlockfile(fp)
 #endif
@@ -368,34 +370,34 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 	g_lnlowerp = g_lnlower;
 	filename = filename + g_fuldirlen + 1;
 
-#define PRINT_LN(i)                                                                               \
-	do {                                                                                      \
-		g_lnlen = (g_lnp + i) - g_ln + 1;                                                 \
-		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
-			g_found = g_ln + (g_found - g_lnlower);                                   \
-			g_lnlowerp = g_lnlower;                                                   \
-			CPY_N_ADV(g_lnlowerp, ANSI_RED);                                          \
-			CPY_N_ADV_LEN(g_lnlowerp, filename, flen);                                \
-			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":" ANSI_GREEN);                         \
-			g_NLbufp = g_NLbuf;                                                       \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
-			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                       \
-			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                    \
-			flockfile(stdout);                                                        \
-			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                     \
-			fwrite(g_ln + 1, 1, g_found - g_ln - 1, stdout);                          \
-			PRINT_LITERAL(ANSI_RED);                                                  \
-			fwrite(g_found, 1, ptnlen, stdout);                                       \
-			PRINT_LITERAL(ANSI_RESET);                                                \
-			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
-			putchar('\n');                                                            \
-			funlockfile(stdout);                                                      \
-		}                                                                                 \
+#define PRINT_LN(i)                                                                                                            \
+	do {                                                                                                                   \
+		g_lnlen = (g_lnp + i) - g_ln + 1;                                                                              \
+		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                                                     \
+			g_found = g_ln + (g_found - g_lnlower);                                                                \
+			g_lnlowerp = g_lnlower;                                                                                \
+			CPY_N_ADV(g_lnlowerp, ANSI_RED);                                                                       \
+			CPY_N_ADV_LEN(g_lnlowerp, filename, flen);                                                             \
+			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":" ANSI_GREEN);                                                      \
+			g_NLbufp = g_NLbuf;                                                                                    \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                                      \
+			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                                                    \
+			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                                                 \
+			flockfile(stdout);                                                                                     \
+			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                                                  \
+			fwrite(g_ln, 1, g_found - g_ln - 1, stdout);                                                           \
+			PRINT_LITERAL(ANSI_RED);                                                                               \
+			fwrite(g_found, 1, ptnlen, stdout);                                                                    \
+			PRINT_LITERAL(ANSI_RESET);                                                                             \
+			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);                              \
+			funlockfile(stdout);                                                                                   \
+		}                                                                                                              \
 	} while (0)
 
 	do {
 
 #define LOOP_FGREP(i)                                    \
+	do {                                             \
 		g_c = fgetc(fp);                         \
 		switch (g_table[g_c + 1]) {              \
 		case WANTED_UPPER:                       \
@@ -403,7 +405,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			/* FALLTHROUGH */                \
 		case UPPER:                              \
 			g_lnp[i] = g_c;                  \
-			g_lnlowerp[i] = g_c + 'A' + 'a'; \
+			g_lnlowerp[i] = g_c - 'A' + 'a'; \
 			break;                           \
 		case WANTED:                             \
 			g_wanted = 1;                    \
@@ -413,6 +415,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			g_lnlowerp[i] = g_c;             \
 			break;                           \
 		case NEWLINE:                            \
+			g_lnp[i] = '\n';                 \
 			if (g_wanted) {                  \
 				PRINT_LN(i);             \
 				g_wanted = 0;            \
@@ -420,21 +423,23 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			++g_NL;                          \
 			g_lnp = g_ln;                    \
 			g_lnlowerp = g_lnlower;          \
-			break;                           \
+			goto CONT;                       \
 		case END_OF_FILE:                        \
+			g_lnp[i] = '\n';                 \
 			if (g_wanted)                    \
 				PRINT_LN(i);             \
 			/* FALLTHROUGH */                \
 		case REJECT:                             \
 			goto OUT;                        \
 		}                                        \
+	} while (0)
 
 		LOOP_FGREP(0);
 		LOOP_FGREP(1);
 		LOOP_FGREP(2);
 		LOOP_FGREP(3);
 		g_lnp += 4, g_lnlowerp += 4;
-
+CONT:;
 	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
 OUT:
 	fclose(fp);
@@ -545,40 +550,38 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":");
 	g_NL = 2;
 
-#define LOOP_CAT                                                  \
-	switch (*g_lnp = getc(fp)) {                              \
-	default:                                                  \
-	case '\t':                                                \
-		break;                                            \
-	case '\n':                                                \
-		flockfile(stdout);                                \
-		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-		funlockfile(stdout);                              \
-		g_lnp = g_ln;                                     \
-		CPY_N_ADV(g_lnp, ANSI_RED);                       \
-		CPY_N_ADV_LEN(g_lnp, filename, flen);             \
-		CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);      \
-		g_NLbufp = g_NLbuf;                               \
-		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
-		CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);    \
-		CPY_N_ADV(g_lnp, ANSI_RESET ":");                 \
-		--g_lnp;                                          \
-		++g_NL;                                           \
-		break;                                            \
-	case EOF:                                                 \
-		*g_lnp = '\n';                                    \
-		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-	case '\0':                                                \
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL                    \
-		goto OUT;                                         \
-	}                                                         \
-	++g_lnp
+#define LOOP_CAT(i)                                                     \
+	switch (g_lnp[i] = getc(fp)) {                                  \
+	default:                                                        \
+	case '\t':                                                      \
+		break;                                                  \
+	case '\n':                                                      \
+		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout); \
+		g_lnp = g_ln;                                           \
+		CPY_N_ADV(g_lnp, ANSI_RED);                             \
+		CPY_N_ADV_LEN(g_lnp, filename, flen);                   \
+		CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);            \
+		g_NLbufp = g_NLbuf;                                     \
+		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);       \
+		CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);          \
+		CPY_N_ADV(g_lnp, ANSI_RESET ":");                       \
+		++g_NL;                                                 \
+		goto CONT;                                              \
+	case EOF:                                                       \
+		g_lnp[i] = '\n';                                        \
+		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout); \
+	case '\0':                                                      \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL                          \
+		goto OUT;                                               \
+	}                                                               \
 
 	do {
-		LOOP_CAT;
-		LOOP_CAT;
-		LOOP_CAT;
-		LOOP_CAT;
+		LOOP_CAT(0);
+		LOOP_CAT(1);
+		LOOP_CAT(2);
+		LOOP_CAT(3);
+		g_lnp += 4;
+CONT:;
 	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
 OUT:
 	fclose(fp);
