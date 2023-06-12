@@ -4,7 +4,7 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include "../lib/libcatvr.h"
+#include "../lib/librgrep.h"
 #include "g_memmem.h"
 #include <dirent.h>
 #include <stdio.h>
@@ -16,14 +16,15 @@
 #ifndef UINT_LEN
 #	define UINT_LEN 10
 #endif /* UINT_LEN */
+
 #define MAX_LINE_LEN 512
 #define MAX_PATH_LEN 4096
 #define MAX_ARG_LEN 256
 
 char g_ln[MAX_LINE_LEN];
 char g_lnlower[MAX_LINE_LEN];
-char *g_lnlowerp;
 char *g_lnp;
+char *g_lnlowerp;
 char *g_NLbufp;
 char g_NLbuf[UINT_LEN];
 const char *g_found;
@@ -64,6 +65,7 @@ struct stat g_st;
 #endif /* !HAS_MEMMEM */
 
 int g_first_match;
+
 enum { ACCEPT = 0,
 	REJECT,
 	NEWLINE,
@@ -74,6 +76,7 @@ enum { ACCEPT = 0,
 	FILLED,
 	END_OF_FILE };
 unsigned char g_table[257] = {
+
 
 	/* EOF */
 	END_OF_FILE, /* -1 */

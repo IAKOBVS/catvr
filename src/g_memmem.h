@@ -114,7 +114,7 @@ William Pitcock  */
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include "../lib/libcatvr.h"
+#include "../lib/librgrep.h"
 #include <stdint.h>
 /* #include <string.h> */
 /* #include <stddef.h> */
