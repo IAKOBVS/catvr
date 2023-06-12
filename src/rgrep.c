@@ -52,6 +52,9 @@ struct stat g_st;
 
 #ifdef HAS_FWRITE_UNLOCKED
 #	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
+#else
+#	define flockfile(fp)
+#	define funlockfile(fp)
 #endif
 
 #ifndef HAS_MEMMEM
@@ -378,12 +381,15 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
 			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                       \
 			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                    \
+			flockfile(stdout);                                                        \
 			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                     \
 			fwrite(g_ln + 1, 1, g_found - g_ln - 1, stdout);                          \
 			PRINT_LITERAL(ANSI_RED);                                                  \
 			fwrite(g_found, 1, ptnlen, stdout);                                       \
 			PRINT_LITERAL(ANSI_RESET);                                                \
 			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
+			putchar('\n');                                                            \
+			funlockfile(stdout);                                                      \
 		}                                                                                 \
 	} while (0)
 
@@ -407,8 +413,6 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			g_lnlowerp[i] = g_c;             \
 			break;                           \
 		case NEWLINE:                            \
-			g_lnp[i] = '\n';                 \
-			g_lnlowerp[i] = '\n';            \
 			if (g_wanted) {                  \
 				PRINT_LN(i);             \
 				g_wanted = 0;            \
@@ -418,8 +422,6 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 			g_lnlowerp = g_lnlower;          \
 			break;                           \
 		case END_OF_FILE:                        \
-			g_lnp[i] = '\n';                 \
-			g_lnlowerp[i] = '\n';            \
 			if (g_wanted)                    \
 				PRINT_LN(i);             \
 			/* FALLTHROUGH */                \
@@ -549,7 +551,9 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	case '\t':                                                \
 		break;                                            \
 	case '\n':                                                \
+		flockfile(stdout);                                \
 		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
+		funlockfile(stdout);                              \
 		g_lnp = g_ln;                                     \
 		CPY_N_ADV(g_lnp, ANSI_RED);                       \
 		CPY_N_ADV_LEN(g_lnp, filename, flen);             \
