@@ -179,5 +179,3 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 		return (char *)memmem(h, hlen, n, nlen);
 	}
 }
-
-#define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
