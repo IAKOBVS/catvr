@@ -370,28 +370,28 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 	g_lnlowerp = g_lnlower;
 	filename = filename + g_fuldirlen + 1;
 
-#define PRINT_LN(i)                                                                                                            \
-	do {                                                                                                                   \
-		g_lnlen = (g_lnp + i) - g_ln + 1;                                                                              \
-		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                                                     \
-			g_found = g_ln + (g_found - g_lnlower);                                                                \
-			g_lnlowerp = g_lnlower;                                                                                \
-			CPY_N_ADV(g_lnlowerp, ANSI_RED);                                                                       \
-			CPY_N_ADV_LEN(g_lnlowerp, filename, flen);                                                             \
-			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":" ANSI_GREEN);                                                      \
-			g_NLbufp = g_NLbuf;                                                                                    \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                                      \
-			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                                                    \
-			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                                                 \
-			flockfile(stdout);                                                                                     \
-			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                                                  \
-			fwrite(g_ln, 1, g_found - g_ln - 1, stdout);                                                           \
-			PRINT_LITERAL(ANSI_RED);                                                                               \
-			fwrite(g_found, 1, ptnlen, stdout);                                                                    \
-			PRINT_LITERAL(ANSI_RESET);                                                                             \
-			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);                              \
-			funlockfile(stdout);                                                                                   \
-		}                                                                                                              \
+#define PRINT_LN(i)                                                                               \
+	do {                                                                                      \
+		g_lnlen = (g_lnp + i) - g_ln + 1;                                                 \
+		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
+			g_found = g_ln + (g_found - g_lnlower);                                   \
+			g_lnlowerp = g_lnlower;                                                   \
+			CPY_N_ADV(g_lnlowerp, ANSI_RED);                                          \
+			CPY_N_ADV_LEN(g_lnlowerp, filename, flen);                                \
+			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":" ANSI_GREEN);                         \
+			g_NLbufp = g_NLbuf;                                                       \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
+			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                       \
+			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                    \
+			flockfile(stdout);                                                        \
+			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                     \
+			fwrite(g_ln, 1, g_found - g_ln - 1, stdout);                              \
+			PRINT_LITERAL(ANSI_RED);                                                  \
+			fwrite(g_found, 1, ptnlen, stdout);                                       \
+			PRINT_LITERAL(ANSI_RESET);                                                \
+			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
+			funlockfile(stdout);                                                      \
+		}                                                                                 \
 	} while (0)
 
 	do {
