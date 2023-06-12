@@ -156,29 +156,28 @@ static char *fourbyte_memmem(const unsigned char *h, size_t k, const unsigned ch
 
 static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 {
+	/* if (unlikely(!h)) */
+	/* 	return (char *)h; */
+       const unsigned char *hs = (unsigned char *)h;
+       const unsigned char *ne = (unsigned char *)n;
+	if (hlen < nlen)
+		return NULL;
 	switch (nlen) {
 	case 0:
 		return (char *)h;
 	case 1:;
-	       const unsigned char *hs = (unsigned char *)h;
-	       const unsigned char *ne = (unsigned char *)n;
 		if (*hs == *ne)
 			return (char *)hs;
 		return (char *)memchr(hs + 4, *ne, hlen - 4);
-	}
-	if (hlen < nlen)
-		return NULL;
-	if (unlikely(!h))
-		return (char *)h;
-	switch (nlen) {
 	case 2:
 		return twobyte_memmem((unsigned char *)h, hlen, (unsigned char *)n);
 	case 3:
 		return threebyte_memmem((unsigned char *)h, hlen, (unsigned char *)n);
 	case 4:
 		return fourbyte_memmem((unsigned char *)h, hlen, (unsigned char *)n);
+	default:
+		return (char *)memmem(h, hlen, n, nlen);
 	}
-	return (char *)memmem(h, hlen, n, nlen);
 }
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
