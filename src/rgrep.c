@@ -405,42 +405,44 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 
 	do {
 
-#define LOOP_FGREP(i)                                                                     \
-	do {                                                                              \
-		g_c = fgetc(fp);                                                          \
-		switch (g_table[g_c + 1]) {                                               \
-		case WANTED_UPPER:                                                        \
-			g_first_match = g_first_match ? g_first_match : g_lnp + i - g_ln; \
-			/* FALLTHROUGH */                                                 \
-		case UPPER:                                                               \
-			g_lnp[i] = g_c;                                                   \
-			g_lnlowerp[i] = g_c - 'A' + 'a';                                  \
-			break;                                                            \
-		case WANTED:                                                              \
-			g_first_match = g_first_match ? g_first_match : g_lnp + i - g_ln; \
-			/* FALLTHROUGH */                                                 \
-		default:                                                                  \
-			g_lnp[i] = g_c;                                                   \
-			g_lnlowerp[i] = g_c;                                              \
-			break;                                                            \
-		case NEWLINE:                                                             \
-			g_lnp[i] = '\n';                                                  \
-			if (g_first_match) {                                              \
-				PRINT_LN(i);                                              \
-				g_first_match = 0;                                        \
-			}                                                                 \
-			++g_NL;                                                           \
-			g_lnp = g_ln;                                                     \
-			g_lnlowerp = g_lnlower;                                           \
-			goto CONT;                                                        \
-		case END_OF_FILE:                                                         \
-			g_lnp[i] = '\n';                                                  \
-			if (g_first_match)                                                \
-				PRINT_LN(i);                                              \
-			/* FALLTHROUGH */                                                 \
-		case REJECT:                                                              \
-			goto OUT;                                                         \
-		}                                                                         \
+#define LOOP_FGREP(i)                                             \
+	do {                                                      \
+		g_c = fgetc(fp);                                  \
+		switch (g_table[g_c + 1]) {                       \
+		case WANTED_UPPER:                                \
+			if (!g_first_match)                       \
+				g_first_match = g_lnp + i - g_ln; \
+			/* FALLTHROUGH */                         \
+		case UPPER:                                       \
+			g_lnp[i] = g_c;                           \
+			g_lnlowerp[i] = g_c - 'A' + 'a';          \
+			break;                                    \
+		case WANTED:                                      \
+			if (!g_first_match)                       \
+				g_first_match = g_lnp + i - g_ln; \
+			/* FALLTHROUGH */                         \
+		default:                                          \
+			g_lnp[i] = g_c;                           \
+			g_lnlowerp[i] = g_c;                      \
+			break;                                    \
+		case NEWLINE:                                     \
+			g_lnp[i] = '\n';                          \
+			if (g_first_match) {                      \
+				PRINT_LN(i);                      \
+				g_first_match = 0;                \
+			}                                         \
+			++g_NL;                                   \
+			g_lnp = g_ln;                             \
+			g_lnlowerp = g_lnlower;                   \
+			goto CONT;                                \
+		case END_OF_FILE:                                 \
+			g_lnp[i] = '\n';                          \
+			if (g_first_match)                        \
+				PRINT_LN(i);                      \
+			/* FALLTHROUGH */                         \
+		case REJECT:                                      \
+			goto OUT;                                 \
+		}                                                 \
 	} while (0)
 
 		LOOP_FGREP(0);
