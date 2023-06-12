@@ -375,22 +375,18 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 		g_lnlen = (g_lnp + i) - g_ln + 1;                                                 \
 		if ((g_found = memmem(g_lnlower, g_lnlen, ptn, ptnlen))) {                        \
 			g_found = g_ln + (g_found - g_lnlower);                                   \
-			g_lnlowerp = g_lnlower;                                                   \
-			CPY_N_ADV(g_lnlowerp, ANSI_RED);                                          \
-			CPY_N_ADV_LEN(g_lnlowerp, filename, flen);                                \
-			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":" ANSI_GREEN);                         \
 			g_NLbufp = g_NLbuf;                                                       \
 			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                         \
-			CPY_N_ADV_LEN(g_lnlowerp, g_NLbufp, g_NLbufdigits);                       \
-			CPY_N_ADV(g_lnlowerp, ANSI_RESET ":");                                    \
-			flockfile(stdout);                                                        \
-			fwrite(g_lnlower, 1, g_lnlowerp - g_lnlower, stdout);                     \
+			PRINT_LITERAL(ANSI_RED);                                                  \
+			fwrite(filename, 1, flen, stdout);                                        \
+			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                 \
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                               \
+			PRINT_LITERAL(ANSI_RESET ":");                                            \
 			fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
 			PRINT_LITERAL(ANSI_RED);                                                  \
 			fwrite(g_found, 1, ptnlen, stdout);                                       \
 			PRINT_LITERAL(ANSI_RESET);                                                \
 			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout); \
-			funlockfile(stdout);                                                      \
 		}                                                                                 \
 	} while (0)
 
@@ -550,30 +546,30 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 	CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":");
 	g_NL = 2;
 
-#define LOOP_CAT(i)                                                     \
-	switch (g_lnp[i] = getc(fp)) {                                  \
-	default:                                                        \
-	case '\t':                                                      \
-		break;                                                  \
-	case '\n':                                                      \
-		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout); \
-		g_lnp = g_ln;                                           \
-		CPY_N_ADV(g_lnp, ANSI_RED);                             \
-		CPY_N_ADV_LEN(g_lnp, filename, flen);                   \
-		CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN);            \
-		g_NLbufp = g_NLbuf;                                     \
-		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);       \
-		CPY_N_ADV_LEN(g_lnp, g_NLbufp, g_NLbufdigits);          \
-		CPY_N_ADV(g_lnp, ANSI_RESET ":");                       \
-		++g_NL;                                                 \
-		goto CONT;                                              \
-	case EOF:                                                       \
-		g_lnp[i] = '\n';                                        \
-		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout); \
-	case '\0':                                                      \
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL                          \
-		goto OUT;                                               \
-	}                                                               \
+#define LOOP_CAT(i)                                               \
+	switch (g_lnp[i] = getc(fp)) {                            \
+	default:                                                  \
+	case '\t':                                                \
+		break;                                            \
+	case '\n':                                                \
+		fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);  \
+		g_NLbufp = g_NLbuf;                               \
+		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
+		PRINT_LITERAL(ANSI_RED);                          \
+		fwrite(filename, 1, flen, stdout);                \
+		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
+		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
+		PRINT_LITERAL(ANSI_RESET ":");                    \
+		++g_NL;                                           \
+		g_lnp = g_ln;                                     \
+		goto CONT;                                        \
+	case EOF:                                                 \
+		g_lnp[i] = '\n';                                  \
+		fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);  \
+	case '\0':                                                \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL                    \
+		goto OUT;                                         \
+	}                                                         \
 
 	do {
 		LOOP_CAT(0);
@@ -661,6 +657,7 @@ int main(int argc, char **argv)
 		fputs("Can't get number of cores!", stderr);
 		return EXIT_FAILURE;
 	}
+	setvbuf(stdout, NULL, _IOFBF, BUFSIZ);
 	if (argc == 1 || !argv[1][0]) {
 		char cwd[MAX_PATH_LEN];
 		get_dir(cwd);
