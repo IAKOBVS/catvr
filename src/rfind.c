@@ -6,14 +6,14 @@
 
 #include <dirent.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "config.h"
+#include "fork.h"
+#include "g_memmem.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
-#include "g_memmem.h"
-#include "fork.h"
 
 static char *g_found;
 static unsigned int g_fuldirlen;
@@ -21,12 +21,12 @@ static pid_t pid = 1;
 static unsigned int g_child_tot = 0;
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action)       \
-	if (filename[0] == '.')                \
-		switch (filename[1]) {         \
-		case '.':                      \
-		case '\0':                     \
-			action;                \
+#define IF_EXCLUDED_DO(filename, action) \
+	if (filename[0] == '.')          \
+		switch (filename[1]) {   \
+		case '.':                \
+		case '\0':               \
+			action;          \
 		}
 
 static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, const size_t ptnlen)
@@ -41,7 +41,7 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		printf("d->name: %s\n", ep->d_name);
 #endif /* DEBUG */
 
-#define PRINT_LITERAL(s)                    \
+#define PRINT_LITERAL(s) \
 	fwrite(s, 1, sizeof(s) - 1, stdout)
 
 #define DO_REG                                                                                          \
@@ -59,8 +59,8 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		}                                                                                       \
 	} while (0)
 
-#define DO_DIR                                                                                       \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                                         \
+#define DO_DIR                               \
+	IF_EXCLUDED_DO(ep->d_name, continue) \
 	FORK_AND_WAIT(find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen))
 
 #ifdef _DIRENT_HAVE_D_TYPE

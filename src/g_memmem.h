@@ -83,7 +83,7 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 		if (tmp < m1)
 			continue;
 		if (!memcmp(hs, n, m1)) {
-#define reset_table        \
+#define reset_table \
 	g_mtable[hash] = 0
 			reset_table;
 			return (char *)hs;

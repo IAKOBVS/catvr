@@ -10,12 +10,12 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "fork.h"
 #include "g_memmem.h"
 #include "globals.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
-#include "config.h"
 
 static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
 {
