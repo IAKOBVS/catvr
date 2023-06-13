@@ -15,7 +15,6 @@
 #include "globals.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
-
 #include "config.h"
 
 static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
@@ -320,11 +319,6 @@ static INLINE void init_table(const char needle)
 
 int main(int argc, char **argv)
 {
-	g_child_max = sysconf(_SC_NPROCESSORS_CONF);
-	if (unlikely(g_child_max == -1)) {
-		fputs("Can't get number of cores!", stderr);
-		return EXIT_FAILURE;
-	}
 	if (argc == 1 || !argv[1][0]) {
 		char cwd[MAX_PATH_LEN];
 		get_dir(cwd);
