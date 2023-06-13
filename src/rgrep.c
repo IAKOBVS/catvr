@@ -18,8 +18,6 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
-#include <stdlib.h>
-
 static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -344,10 +342,11 @@ static void no_such_file(const char *entry)
 
 int main(int argc, char **argv)
 {
-	if (argc == 1 || !argv[1][0]) {
+	if (argc == 1
+	|| !argv[1][0]) {
 		g_fuldirlen = 1;
 		find_cat(".", 1);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 	char needlebuf[MAX_NEEDLE_LEN + 1];
 	const needlelen_t needlebuflen = init_needle(needlebuf, NEEDLE_ARG);
@@ -362,7 +361,7 @@ int main(int argc, char **argv)
 	/* FALLTHROUGH */
 	default:
 		if (unlikely(stat(DIR_ARG, &g_st))) {
-			fprintf(stderr, "%s not a valid file or dir\n", DIR_ARG);
+			no_such_file(DIR_ARG);
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
