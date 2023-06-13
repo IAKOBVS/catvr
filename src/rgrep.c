@@ -88,8 +88,8 @@ static INLINE void fgrep(const char *needle, const char *filename, const needlel
 			g_lnlowerp[i] = g_c;                      \
 			break;                                    \
 		case NEWLINE:                                     \
-			g_lnp[i] = '\n';                          \
 			if (g_first_match) {                      \
+				g_lnp[i] = '\n';                  \
 				PRINT_LN(i);                      \
 				g_first_match = 0;                \
 			}                                         \
@@ -119,6 +119,21 @@ OUT:
 	fclose(fp);
 }
 
+#define REG_IF_EXCLUDED(filename) \
+	if ((filename)[0] == '.'  \
+	&& (filename)[1] == 'c'   \
+	&& (filename)[2] == 'l'   \
+	&& (filename)[3] == 'a'   \
+	&& (filename)[4] == 'n'   \
+	&& (filename)[5] == 'g'   \
+	&& (filename)[6] == '-'   \
+	&& (filename)[7] == 'f'   \
+	&& (filename)[8] == 'o'   \
+	&& (filename)[9] == 'r'   \
+	&& (filename)[10] == 'm'  \
+	&& (filename)[11] == 'a'  \
+	&& (filename)[12] == 't') \
+
 /* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DO(filename, action)          \
 	if ((filename)[0] == '.')                 \
@@ -126,20 +141,6 @@ OUT:
 		case '.':                         \
 		case '\0':                        \
 			action;                   \
-			break;                    \
-		case 'c':                         \
-			if ((filename)[2] == 'l'  \
-			&& (filename)[3] == 'a'   \
-			&& (filename)[4] == 'n'   \
-			&& (filename)[5] == 'g'   \
-			&& (filename)[6] == '-'   \
-			&& (filename)[7] == 'f'   \
-			&& (filename)[8] == 'o'   \
-			&& (filename)[9] == 'r'   \
-			&& (filename)[10] == 'm'  \
-			&& (filename)[11] == 'a'  \
-			&& (filename)[12] == 't') \
-				action;           \
 			break;                    \
 		case 'g':                         \
 			if ((filename)[2] == 'i'  \
@@ -169,23 +170,27 @@ OUT:
 #ifdef _DIRENT_HAVE_D_TYPE
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		switch (ep->d_type) {                                \
-		case DT_REG:                                         \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-			break;                                       \
-		case DT_DIR:                                         \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		switch (ep->d_type) {                               \
+		case DT_REG:                                        \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+			break;                                      \
+		case DT_DIR:                                        \
+			REG_IF_EXCLUDED(ep->d_name)                 \
+				continue;                           \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
 		}
 
 #else
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		if (unlikely(stat(dir, &g_st)))                      \
-			continue;                                    \
-		if (S_ISREG(g_st.st_mode)) {                         \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-		} else if (S_ISDIR(g_st.st_mode)) {                  \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		if (unlikely(stat(dir, &g_st)))                     \
+			continue;                                   \
+		if (S_ISREG(g_st.st_mode)) {                        \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+		} else if (S_ISDIR(g_st.st_mode)) {                 \
+			REG_IF_EXCLUDED(ep->d_name)                 \
+				continue;                           \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
 		}
 
 #endif /* _DIRENT_HAVE_D_TYPE */
@@ -365,7 +370,8 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
-			g_fuldirlen = strrchr(DIR_ARG, '/') - DIR_ARG;
+			const char *const end = strrchr(DIR_ARG, '/');
+			g_fuldirlen = end ? end - DIR_ARG : 0;
 			fgrep(needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIR_ARG);
