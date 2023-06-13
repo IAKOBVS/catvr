@@ -1,3 +1,20 @@
+/* Copyright (C) 1991-2023 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, see
+   <https://www.gnu.org/licenses/>.  */
+
 #ifndef G_MEMMEM_DEF_H
 #define G_MEMMEM_DEF_H
 
@@ -15,23 +32,6 @@
 #		define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #	endif /* memmem */
 #endif /* !HAS_MEMMEM */
-
-/* Copyright (C) 1991-2023 Free Software Foundation, Inc.
-   This file is part of the GNU C Library.
-
-   The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2.1 of the License, or (at your option) any later version.
-
-   The GNU C Library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library; if not, see
-   <https://www.gnu.org/licenses/>.  */
 
 static uint8_t g_mtable[256];
 
@@ -54,8 +54,10 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 	const unsigned char *ne = (unsigned char *)n;
 	const unsigned char *const end = hs + hlen - nlen;
 	switch (nlen) {
-	case 0: return (char *)h;
-	case 1: if (*hs == *ne)
+	case 0:
+		return (char *)h;
+	case 1:
+		if (*hs == *ne)
 			return (char *)hs;
 		return (char *)memchr(hs + 4, *ne, hlen - 4);
 	case 2:;

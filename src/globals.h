@@ -1,8 +1,8 @@
 #ifndef GLOBALS_DEF_H
 #define GLOBALS_DEF_H
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #ifndef UINT_LEN
 #	define UINT_LEN 10

@@ -7,7 +7,7 @@
 			wait(NULL);               \
 			--g_child_tot;            \
 		}                                 \
-	} while (0)                               \
+	} while (0)
 
 #define FORK_AND_WAIT(DO)                       \
 	do {                                    \
