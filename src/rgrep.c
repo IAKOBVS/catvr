@@ -21,20 +21,6 @@
 #define MAX_PATH_LEN 4096
 #define MAX_ARG_LEN 256
 
-char g_ln[MAX_LINE_LEN];
-char g_lnlower[MAX_LINE_LEN];
-char *g_lnp;
-char *g_lnlowerp;
-char *g_NLbufp;
-char g_NLbuf[UINT_LEN];
-const char *g_found;
-int g_c;
-unsigned int g_NL;
-unsigned int g_NLbufdigits;
-unsigned int g_fuldirlen;
-unsigned int g_lnlen;
-struct stat g_st;
-
 #ifdef HAS_FGETC_UNLOCKED
 #	define fgetc(c) fgetc_unlocked(c)
 #endif
@@ -64,7 +50,24 @@ struct stat g_st;
 #	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
 #endif /* !HAS_MEMMEM */
 
-int g_first_match;
+static char g_ln[MAX_LINE_LEN];
+static char g_lnlower[MAX_LINE_LEN];
+static char *g_lnp;
+static char *g_lnlowerp;
+static char *g_NLbufp;
+static char g_NLbuf[UINT_LEN];
+static const char *g_found;
+static unsigned int g_NL;
+static unsigned int g_NLbufdigits;
+static unsigned int g_fuldirlen;
+static unsigned int g_lnlen;
+static struct stat g_st;
+static int g_c;
+static int g_first_match;
+
+static unsigned int g_child_tot;
+static long g_child_max;
+static pid_t pid = 1;
 
 enum { ACCEPT = 0,
 	REJECT,
@@ -528,10 +531,6 @@ OUT:
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-long g_child_max;
-unsigned int g_child_tot;
-pid_t pid = 1;
-
 #define DEF_FIND_T(F, DO, USE_LEN)                                                             \
 	static int F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
 	{                                                                                      \
@@ -705,6 +704,7 @@ int main(int argc, char **argv)
 	char ptn[MAX_ARG_LEN];
 	set_pattern(ptn, PTN_);
 	init_table(*ptn);
+	init_memmem_table(ptn);
 	if (argc == 2)
 		goto GET_CWD;
 	switch (DIR_[0]) {
