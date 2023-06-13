@@ -1,3 +1,6 @@
+#ifndef G_MEMMEM_DEF_H
+#define G_MEMMEM_DEF_H
+
 /* musl as a whole is licensed under the following standard MIT license:
 
 ----------------------------------------------------------------------
@@ -227,3 +230,4 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 	}
 }
 
+#endif /* G_MEMMEM_DEF_H */
