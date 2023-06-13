@@ -14,8 +14,18 @@
 #include "globals.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
+#include "fork.h"
 
-static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptnlen, const size_t flen)
+#define MAX_NEEDLE_LEN 256
+
+#if MAX_NEEDLE_LEN > 256
+#	define g_memmem(hs, hlen, ne, nlen) unlikely(ne > 256) ? memmem(hs, hlen, ne, nlen) : g_memmem(hs, hlen, ne, nlen)
+	typedef size_t needlelen_t;
+#else
+	typedef unsigned int needlelen_t;
+#endif
+
+static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
 	if (unlikely(!fp))
@@ -41,26 +51,26 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 #define PRINT_LITERAL(s) \
 	fwrite(s, 1, sizeof(s) - 1, stdout)
 
-#define PRINT_LN(i)                                                                                          \
-	do {                                                                                                 \
-		g_lnlen = (g_lnp + i) - g_ln + 1;                                                            \
-		if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, ptn, ptnlen))) { \
-			g_found = g_ln + (g_found - g_lnlower);                                              \
-			g_NLbufp = g_NLbuf;                                                                  \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                    \
-			flockfile(stdout);                                                                   \
-			PRINT_LITERAL(ANSI_RED);                                                             \
-			fwrite(filename, 1, flen, stdout);                                                   \
-			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                            \
-			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                          \
-			PRINT_LITERAL(ANSI_RESET ":");                                                       \
-			fwrite(g_ln, 1, g_found - g_ln, stdout);                                             \
-			PRINT_LITERAL(ANSI_RED);                                                             \
-			fwrite(g_found, 1, ptnlen, stdout);                                                  \
-			PRINT_LITERAL(ANSI_RESET);                                                           \
-			fwrite(g_found + ptnlen, 1, g_lnlen - (g_found - g_ln + ptnlen), stdout);            \
-			funlockfile(stdout);                                                                 \
-		}                                                                                            \
+#define PRINT_LN(i)                                                                                                \
+	do {                                                                                                       \
+		g_lnlen = (g_lnp + i) - g_ln + 1;                                                                  \
+		if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, needle, needlelen))) { \
+			g_found = g_ln + (g_found - g_lnlower);                                                    \
+			g_NLbufp = g_NLbuf;                                                                        \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                          \
+			flockfile(stdout);                                                                         \
+			PRINT_LITERAL(ANSI_RED);                                                                   \
+			fwrite(filename, 1, flen, stdout);                                                         \
+			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                                  \
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                                \
+			PRINT_LITERAL(ANSI_RESET ":");                                                             \
+			fwrite(g_ln, 1, g_found - g_ln, stdout);                                                   \
+			PRINT_LITERAL(ANSI_RED);                                                                   \
+			fwrite(g_found, 1, needlelen, stdout);                                                     \
+			PRINT_LITERAL(ANSI_RESET);                                                                 \
+			fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
+			funlockfile(stdout);                                                                       \
+		}                                                                                                  \
 	} while (0)
 
 #define LOOP_FGREP(i)                                             \
@@ -140,27 +150,13 @@ OUT:
 
 #define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                           \
 	if (USE_LEN)                                                                                                   \
-		FUNC_REG(ptn, fulpath, ptnlen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
+		FUNC_REG(needle, fulpath, needlelen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
 	else                                                                                                           \
-		FUNC_REG(ptn, fulpath, 0, 0)
+		FUNC_REG(needle, fulpath, 0, 0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                                        \
-	if (pid > 0) {                                                                              \
-		if (g_child_tot == g_child_max) {                                                   \
-			wait(NULL);                                                                 \
-			--g_child_tot;                                                              \
-		}                                                                                   \
-		pid = fork();                                                                       \
-	}                                                                                           \
-	switch (pid) {                                                                              \
-	case 0:                                                                                     \
-		FUNC_SELF(ptn, ptnlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-		break;                                                                              \
-	default:                                                                                    \
-		++g_child_tot;                                                                      \
-	case -1:;                                                                                   \
-	}
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                            \
+	IF_EXCLUDED_DO(ep->d_name, continue)                                                                    \
+	FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
@@ -186,19 +182,19 @@ OUT:
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-#define DEF_FIND_T(F, DO, USE_LEN)                                                              \
-	static void F(const char *ptn, const size_t ptnlen, const char *dir, const size_t dlen) \
-	{                                                                                       \
-		DIR *dp = opendir(dir);                                                         \
-		if (unlikely(!dp))                                                              \
-			return;                                                                 \
-		struct dirent *ep;                                                              \
-		char fulpath[MAX_PATH_LEN];                                                     \
-		while ((ep = readdir(dp))) {                                                    \
-			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                  \
-		}                                                                               \
-		closedir(dp);                                                                   \
-		return;                                                                         \
+#define DEF_FIND_T(F, DO, USE_LEN)                                                                         \
+	static void F(const char *needle, const needlelen_t needlelen, const char *dir, const size_t dlen) \
+	{                                                                                                  \
+		DIR *dp = opendir(dir);                                                                    \
+		if (unlikely(!dp))                                                                         \
+			return;                                                                            \
+		struct dirent *ep;                                                                         \
+		char fulpath[MAX_PATH_LEN];                                                                \
+		while ((ep = readdir(dp))) {                                                               \
+			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                             \
+		}                                                                                          \
+		closedir(dp);                                                                              \
+		return;                                                                                    \
 	}
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
@@ -269,23 +265,9 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #define FIND_CAT_DO_REG \
 	catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
 
-#define FIND_CAT_DO_DIR                                                               \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                          \
-	if (pid > 0) {                                                                \
-		if (g_child_tot == g_child_max) {                                     \
-			wait(NULL);                                                   \
-			--g_child_tot;                                                \
-		}                                                                     \
-		pid = fork();                                                         \
-	}                                                                             \
-	switch (pid) {                                                                \
-	case 0:                                                                       \
-		find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-		break;                                                                \
-	default:                                                                      \
-		++g_child_tot;                                                        \
-	case -1:;                                                                     \
-	}
+#define FIND_CAT_DO_DIR                                                                     \
+	IF_EXCLUDED_DO(ep->d_name, continue)                                                \
+	FORK_AND_WAIT(find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)) \
 
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
@@ -334,13 +316,13 @@ static INLINE void set_pattern(char *dst, const char *src)
 	}
 }
 
-static INLINE void init_table(char ptn)
+static INLINE void init_table(char needle)
 {
-	g_table[(unsigned char)ptn + 1] = WANTED;
-	g_table[(unsigned char)ptn - 'a' + 'A' + 1] = WANTED_UPPER;
+	g_table[(unsigned char)needle + 1] = WANTED;
+	g_table[(unsigned char)needle - 'a' + 'A' + 1] = WANTED_UPPER;
 }
 
-#define PATTERN_ARG argv[1]
+#define NEEDLE_ARG argv[1]
 #define DIR_ARG argv[2]
 
 int main(int argc, char **argv)
@@ -356,10 +338,10 @@ int main(int argc, char **argv)
 		find_cat(cwd, g_fuldirlen);
 		return EXIT_SUCCESS;
 	}
-	char ptn[MAX_ARG_LEN];
-	set_pattern(ptn, PATTERN_ARG);
-	init_table(*ptn);
-	init_memmem_table(ptn);
+	char needle[MAX_NEEDLE_LEN + 1];
+	set_pattern(needle, NEEDLE_ARG);
+	init_table(*needle);
+	const needlelen_t needlelen = init_memmem(needle);
 	if (argc == 2)
 		goto GET_CWD;
 	switch (DIR_ARG[0]) {
@@ -374,17 +356,17 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIR_ARG, '/') - DIR_ARG;
-			fgrep(ptn, DIR_ARG, strlen(ptn), strlen(DIR_ARG + g_fuldirlen));
+			fgrep(needle, DIR_ARG, needlelen, strlen(DIR_ARG + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIR_ARG);
-			find_fgrep(ptn, strlen(ptn), DIR_ARG, g_fuldirlen);
+			find_fgrep(needle, needlelen, DIR_ARG, g_fuldirlen);
 		}
 		break;
 	case '\0':
 	GET_CWD:;
 		char cwd[MAX_PATH_LEN];
 		get_dir(cwd);
-		find_fgrep(ptn, strlen(ptn), cwd, g_fuldirlen);
+		find_fgrep(needle, needlelen, cwd, g_fuldirlen);
 		break;
 	}
 	return 0;

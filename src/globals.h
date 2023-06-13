@@ -9,7 +9,6 @@
 #endif /* UINT_LEN */
 #define MAX_LINE_LEN 512
 #define MAX_PATH_LEN 4096
-#define MAX_ARG_LEN 256
 
 static char g_ln[MAX_LINE_LEN];
 static char g_lnlower[MAX_LINE_LEN];
