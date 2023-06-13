@@ -351,7 +351,7 @@ int main(int argc, char **argv)
 		break;
 	case '\0':
 	GET_CWD:;
-		char cwd[MAX_PATH_LEN];
+		char cwd[MAX_PATH_LEN + 1];
 		get_dir(cwd);
 		find_fgrep(needle, needlelen, cwd, g_fuldirlen);
 		break;

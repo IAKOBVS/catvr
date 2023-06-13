@@ -4,11 +4,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifndef UINT_LEN
-#	define UINT_LEN 10
-#endif /* UINT_LEN */
-#define MAX_LINE_LEN 512
-#define MAX_PATH_LEN 4096
+#include "config.h"
 
 static char g_ln[MAX_LINE_LEN];
 static char g_lnlower[MAX_LINE_LEN];
@@ -26,7 +22,6 @@ static int g_c;
 static int g_first_match;
 
 static unsigned int g_child_tot;
-static long g_child_max;
 static pid_t pid = 1;
 
 enum { ACCEPT = 0,

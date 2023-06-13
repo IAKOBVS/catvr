@@ -1,7 +1,9 @@
 #ifndef FORK_DEF_H
 #define FORK_DEF_H
 
-#define g_child_max FORK_MAX
+#include "config.h"
+
+#define g_child_max MAX_FORKS
 
 #define IF_FORK_MAX_WAIT_CHILD                    \
 	do {                                      \
