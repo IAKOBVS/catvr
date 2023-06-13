@@ -316,7 +316,7 @@ static INLINE void set_pattern(char *dst, const char *src)
 	}
 }
 
-static INLINE void init_table(char needle)
+static INLINE void init_table(const char needle)
 {
 	g_table[(unsigned char)needle + 1] = WANTED;
 	g_table[(unsigned char)needle - 'a' + 'A' + 1] = WANTED_UPPER;
