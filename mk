@@ -10,6 +10,8 @@ else
 fi
 mkdir -p bin
 cd src || return
+./max_fork
 for file in $(echo *.c); do
-	$compiler -O3 -flto $file -o ../bin/${file%.*} && echo "$file successfuly compiled!"
+	$compiler -O3 -flto $file -o ../bin/${file%.*} && echo "$file successfuly compiled!" &
 done
+wait

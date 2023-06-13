@@ -4,9 +4,10 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
+#define PROG_NAME "rgrep"
+
 #include <dirent.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -17,6 +18,8 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
+#include <stdlib.h>
+
 static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -26,7 +29,8 @@ static INLINE void fgrep(const char *needle, const char *filename, const needlel
 	g_NL = 1;
 	g_lnp = g_ln;
 	g_lnlowerp = g_lnlower;
-	filename = filename + g_fuldirlen + 1;
+	if (likely(g_fuldirlen))
+		filename = filename + g_fuldirlen + 1;
 
 #define CPY_N_ADV(dst, src)                        \
 	do {                                       \
@@ -118,26 +122,40 @@ OUT:
 }
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action)       \
-	if (filename[0] == '.')                \
-		switch (filename[1]) {         \
-		case '.':                      \
-		case '\0':                     \
-			action;                \
-			break;                 \
-		case 'g':                      \
-			if (filename[2] == 'i' \
-			&& filename[3] == 't') \
-				action;        \
-			break;                 \
-		case 'v':                      \
-			if (filename[2] == 's' \
-			&& filename[3] == 'c'  \
-			&& filename[4] == 'o'  \
-			&& filename[5] == 'd'  \
-			&& filename[6] == 'e') \
-				action;        \
-			break;                 \
+#define IF_EXCLUDED_DO(filename, action)          \
+	if ((filename)[0] == '.')                 \
+		switch ((filename)[1]) {          \
+		case '.':                         \
+		case '\0':                        \
+			action;                   \
+			break;                    \
+		case 'c':                         \
+			if ((filename)[2] == 'l'  \
+			&& (filename)[3] == 'a'   \
+			&& (filename)[4] == 'n'   \
+			&& (filename)[5] == 'g'   \
+			&& (filename)[6] == '-'   \
+			&& (filename)[7] == 'f'   \
+			&& (filename)[8] == 'o'   \
+			&& (filename)[9] == 'r'   \
+			&& (filename)[10] == 'm'  \
+			&& (filename)[11] == 'a'  \
+			&& (filename)[12] == 't') \
+				action;           \
+			break;                    \
+		case 'g':                         \
+			if ((filename)[2] == 'i'  \
+			&& (filename)[3] == 't')  \
+				action;           \
+			break;                    \
+		case 'v':                         \
+			if ((filename)[2] == 's'  \
+			&& (filename)[3] == 'c'   \
+			&& (filename)[4] == 'o'   \
+			&& (filename)[5] == 'd'   \
+			&& (filename)[6] == 'e')  \
+				action;           \
+			break;                    \
 		}
 
 #define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                                 \
@@ -146,8 +164,8 @@ OUT:
 	else                                                                                                                 \
 		FUNC_REG(needle, fulpath, 0, 0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)         \
-	IF_EXCLUDED_DO(ep->d_name, continue) \
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                            \
+	IF_EXCLUDED_DO(ep->d_name, continue)                                                                    \
 	FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -191,12 +209,13 @@ OUT:
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
 
-static INLINE void catv(const char *RESTRICT filename, const size_t flen)
+static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 {
 	FILE *RESTRICT fp = fopen(filename, "r");
 	if (unlikely(!fp))
 		return;
-	filename = filename + g_fuldirlen + 1;
+	if (likely(g_fuldirlen))
+		filename = filename + g_fuldirlen + 1;
 	g_lnp = g_ln;
 	g_NL = 1;
 
@@ -255,7 +274,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #endif /* DEBUG */
 
 #define FIND_CAT_DO_REG \
-	catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
+	cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
 
 #define FIND_CAT_DO_DIR                      \
 	IF_EXCLUDED_DO(ep->d_name, continue) \
@@ -285,14 +304,9 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 	closedir(dp);
 }
 
-static void get_dir(char *buf)
+static size_t init_needle(char *dst, const char *src)
 {
-	getcwd(buf, MAX_PATH_LEN);
-	g_fuldirlen = strlen(buf);
-}
-
-static INLINE void set_pattern(char *dst, const char *src)
-{
+	const char *const d = dst;
 	for (;; ++src, ++dst) {
 		switch (*src) {
 			CASE_UPPER
@@ -306,12 +320,23 @@ static INLINE void set_pattern(char *dst, const char *src)
 		}
 		break;
 	}
+	return dst - d;
 }
 
-static INLINE void init_table(const char needle)
+static void init_fgrep(const char needle)
 {
 	g_table[(unsigned char)needle + 1] = WANTED;
 	g_table[(unsigned char)needle - 'a' + 'A' + 1] = WANTED_UPPER;
+}
+
+static void stat_fail(const char *entry)
+{
+	fprintf(stderr, PROG_NAME": %s: Stat failed\n", entry);
+}
+
+static void no_such_file(const char *entry)
+{
+	fprintf(stderr, PROG_NAME": %s : No such file or directory\n", entry);
 }
 
 #define NEEDLE_ARG argv[1]
@@ -324,10 +349,10 @@ int main(int argc, char **argv)
 		find_cat(".", 1);
 		return EXIT_SUCCESS;
 	}
-	char needle[MAX_NEEDLE_LEN + 1];
-	set_pattern(needle, NEEDLE_ARG);
-	init_table(*needle);
-	const needlelen_t needlelen = init_memmem(needle);
+	char needlebuf[MAX_NEEDLE_LEN + 1];
+	const needlelen_t needlebuflen = init_needle(needlebuf, NEEDLE_ARG);
+	init_fgrep(*needlebuf);
+	init_memmem(needlebuf, needlebuflen);
 	if (argc == 2)
 		goto GET_CWD;
 	switch (DIR_ARG[0]) {
@@ -342,16 +367,16 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
 			g_fuldirlen = strrchr(DIR_ARG, '/') - DIR_ARG;
-			fgrep(needle, DIR_ARG, needlelen, strlen(DIR_ARG + g_fuldirlen));
+			fgrep(needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG + g_fuldirlen));
 		} else {
 			g_fuldirlen = strlen(DIR_ARG);
-			find_fgrep(needle, needlelen, DIR_ARG, g_fuldirlen);
+			find_fgrep(needlebuf, needlebuflen, DIR_ARG, g_fuldirlen);
 		}
 		break;
 	case '\0':
 	GET_CWD:;
 		g_fuldirlen = 1;
-		find_fgrep(needle, needlelen, ".", g_fuldirlen);
+		find_fgrep(needlebuf, needlebuflen, ".", g_fuldirlen);
 		break;
 	}
 	return 0;

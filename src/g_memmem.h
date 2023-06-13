@@ -37,13 +37,11 @@ static uint8_t g_mtable[256];
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
 
-static size_t init_memmem(const char *ne)
+static void init_memmem(const char *ne, const int nlen)
 {
 	memset(g_mtable, 0, sizeof(g_mtable));
-	const int m1 = strlen(ne) - 1;
-	for (int i = 1; i < m1; i++)
+	for (int i = 1; i < nlen - 1; i++)
 		g_mtable[hash2(ne + i)] = i;
-	return m1 + 1;
 }
 
 static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)

@@ -87,7 +87,7 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 	closedir(dp);
 }
 
-static INLINE void set_pattern(char *dst, const char *src)
+static INLINE void init_ptn(char *dst, const char *src)
 {
 	for (;; ++src, ++dst) {
 		switch (*src) {
@@ -106,14 +106,33 @@ static INLINE void set_pattern(char *dst, const char *src)
 
 int main(int argc, char **argv)
 {
-	g_fuldirlen = 1;
-	if (!argv[1] || !argv[1][0]) {
-		find(".", g_fuldirlen, "", 0);
+	char ptnbuf[MAX_NEEDLE_LEN + 1];
+	char *ptn;
+	char *dir;
+	switch (argc) {
+	case 1:
+		ptn = "";
+		goto dotdir;
+		break;
+	case 2:
+		init_ptn(ptnbuf, argv[1]);
+		ptn = ptnbuf;
+	dotdir:
+		dir = ".";
+		g_fuldirlen = 1;
+		break;
+	case 3:
+		init_ptn(ptnbuf, argv[1]);
+		ptn = ptnbuf;
+		dir = argv[2];
+		g_fuldirlen = strlen(dir);
+		break;
+	default:
+		fputs("Usage: ./rfind <pattern> <dir>\ndir is PWD by default\n", stderr);
 		return 0;
 	}
-	char needle[MAX_NEEDLE_LEN + 1];
-	set_pattern(needle, argv[1]);
-	const size_t needle_len = init_memmem(argv[1]);
-	find(".", g_fuldirlen, needle, needle_len);
+	const size_t ptnlen = strlen(ptn);
+	init_memmem(ptn, ptnlen);
+	find(dir, g_fuldirlen, ptn, ptnlen);
 	return 0;
 }
