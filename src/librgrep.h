@@ -4,15 +4,32 @@
 #include <string.h>
 #include "macros.h"
 
-#define ANSI_RED     "\x1b[31m"
-#define ANSI_GREEN   "\x1b[32m"
-#define ANSI_YELLOW  "\x1b[33m"
-#define ANSI_BLUE    "\x1b[34m"
-#define ANSI_MAGENTA "\x1b[35m"
-#define ANSI_CYAN    "\x1b[36m"
-#define ANSI_RESET   "\x1b[0m"
+#if USE_ANSI_COLORS
+#	 define ANSI_RED     "\x1b[31m"
+#	 define ANSI_GREEN   "\x1b[32m"
+#	 define ANSI_YELLOW  "\x1b[33m"
+#	 define ANSI_BLUE    "\x1b[34m"
+#	 define ANSI_MAGENTA "\x1b[35m"
+#	 define ANSI_CYAN    "\x1b[36m"
+#	 define ANSI_RESET   "\x1b[0m"
+#else
+#	 define ANSI_RED ""
+#	 define ANSI_GREEN ""
+#	 define ANSI_YELLOW ""
+#	 define ANSI_BLUE ""
+#	 define ANSI_MAGENTA "\x1b[35m"
+#	 define ANSI_CYAN ""
+#	 define ANSI_RESET ""
+#endif /* USE_ANSI_COLORS */
 
 #define UINT_LEN 10
+
+#if MAX_NEEDLE_LEN > 256
+#	define g_memmem(hs, hlen, ne, nlen) unlikely(ne > 256) ? memmem(hs, hlen, ne, nlen) : g_memmem(hs, hlen, ne, nlen)
+typedef size_t needlelen_t;
+#else
+typedef unsigned int needlelen_t;
+#endif
 
 /* Does not nul terminate */
 #define itoa_uint_pos(s, n, base, digits)                                        \

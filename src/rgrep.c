@@ -16,14 +16,7 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
-#define MAX_NEEDLE_LEN 256
-
-#if MAX_NEEDLE_LEN > 256
-#	define g_memmem(hs, hlen, ne, nlen) unlikely(ne > 256) ? memmem(hs, hlen, ne, nlen) : g_memmem(hs, hlen, ne, nlen)
-typedef size_t needlelen_t;
-#else
-typedef unsigned int needlelen_t;
-#endif
+#include "config.h"
 
 static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
 {
