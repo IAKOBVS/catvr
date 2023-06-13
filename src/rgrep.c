@@ -320,9 +320,8 @@ static INLINE void init_table(const char needle)
 int main(int argc, char **argv)
 {
 	if (argc == 1 || !argv[1][0]) {
-		char cwd[MAX_PATH_LEN];
-		get_dir(cwd);
-		find_cat(cwd, g_fuldirlen);
+		g_fuldirlen = 1;
+		find_cat(".", 1);
 		return EXIT_SUCCESS;
 	}
 	char needle[MAX_NEEDLE_LEN + 1];
@@ -351,9 +350,8 @@ int main(int argc, char **argv)
 		break;
 	case '\0':
 	GET_CWD:;
-		char cwd[MAX_PATH_LEN + 1];
-		get_dir(cwd);
-		find_fgrep(needle, needlelen, cwd, g_fuldirlen);
+		g_fuldirlen = 1;
+		find_fgrep(needle, needlelen, ".", g_fuldirlen);
 		break;
 	}
 	return 0;
