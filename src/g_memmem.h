@@ -119,8 +119,6 @@ William Pitcock  */
 
 #include "librgrep.h"
 #include <stdint.h>
-/* #include <string.h> */
-/* #include <stddef.h> */
 
 #ifndef HAS_MEMMEM
 #	ifndef memmem
