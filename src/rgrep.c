@@ -410,7 +410,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 
 #define LOOP_FGREP(i)                                             \
 	do {                                                      \
-		g_c = fgetc(fp);                                  \
+		g_c = getc(fp);                                   \
 		switch (g_table[g_c + 1]) {                       \
 		case WANTED_UPPER:                                \
 			if (!g_first_match)                       \
@@ -672,11 +672,11 @@ static INLINE void set_pattern(char *dst, const char *src)
 		default:
 			*dst = *src;
 			continue;
-		case '\0':;
+		case '\0':
+			*dst = '\0';
 		}
 		break;
 	}
-	*dst = '\0';
 }
 
 static INLINE void init_table(char ptn)

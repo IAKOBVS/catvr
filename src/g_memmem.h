@@ -202,7 +202,7 @@ static char *base_memmem(const unsigned char *hs, size_t hlen, const unsigned ch
 
 static void init_memmem_table(const char *ne)
 {
-	const size_t m1 = strlen(ne) - 1;
+	const int m1 = strlen(ne) - 1;
 	memset(g_mtable, 0, sizeof(g_mtable));
 	for (int i = 1; i < m1 - 1; i++)
 		g_mtable[hash2(ne + i)] = i;
