@@ -10,19 +10,19 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "fork.h"
 #include "g_memmem.h"
 #include "globals.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
-#include "fork.h"
 
 #define MAX_NEEDLE_LEN 256
 
 #if MAX_NEEDLE_LEN > 256
 #	define g_memmem(hs, hlen, ne, nlen) unlikely(ne > 256) ? memmem(hs, hlen, ne, nlen) : g_memmem(hs, hlen, ne, nlen)
-	typedef size_t needlelen_t;
+typedef size_t needlelen_t;
 #else
-	typedef unsigned int needlelen_t;
+typedef unsigned int needlelen_t;
 #endif
 
 static INLINE void fgrep(const char *needle, const char *filename, const needlelen_t needlelen, const size_t flen)
@@ -148,14 +148,14 @@ OUT:
 			break;                 \
 		}
 
-#define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                           \
-	if (USE_LEN)                                                                                                   \
+#define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                                 \
+	if (USE_LEN)                                                                                                         \
 		FUNC_REG(needle, fulpath, needlelen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
-	else                                                                                                           \
+	else                                                                                                                 \
 		FUNC_REG(needle, fulpath, 0, 0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                            \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                                                    \
+#define FIND_FGREP_DO_DIR(FUNC_SELF)         \
+	IF_EXCLUDED_DO(ep->d_name, continue) \
 	FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -265,9 +265,9 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #define FIND_CAT_DO_REG \
 	catv(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
 
-#define FIND_CAT_DO_DIR                                                                     \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                                \
-	FORK_AND_WAIT(find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)) \
+#define FIND_CAT_DO_DIR                      \
+	IF_EXCLUDED_DO(ep->d_name, continue) \
+	FORK_AND_WAIT(find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
 
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
