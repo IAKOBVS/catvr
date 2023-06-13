@@ -4,8 +4,8 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include "../lib/librgrep.h"
 #include "g_memmem.h"
+#include "librgrep.h"
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,8 +78,8 @@ enum { ACCEPT = 0,
 	WANTED_UPPER,
 	FILLED,
 	END_OF_FILE };
-unsigned char g_table[257] = {
 
+unsigned char g_table[257] = {
 
 	/* EOF */
 	END_OF_FILE, /* -1 */
@@ -681,8 +681,8 @@ static INLINE void set_pattern(char *dst, const char *src)
 
 static INLINE void init_table(char ptn)
 {
-	g_table[(unsigned char )ptn + 1] = WANTED;
-	g_table[(unsigned char )ptn - 'a' + 'A' + 1] = WANTED_UPPER;
+	g_table[(unsigned char)ptn + 1] = WANTED;
+	g_table[(unsigned char)ptn - 'a' + 'A' + 1] = WANTED_UPPER;
 }
 
 #define PTN_ argv[1]

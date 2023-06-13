@@ -117,7 +117,7 @@ William Pitcock  */
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include "../lib/librgrep.h"
+#include "librgrep.h"
 #include <stdint.h>
 /* #include <string.h> */
 /* #include <stddef.h> */
