@@ -4,16 +4,15 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include "globals.h"
-#include "g_memmem.h"
-#include "librgrep.h"
-
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "g_memmem.h"
+#include "globals.h"
+#include "librgrep.h"
 #include "unlocked_macros.h"
 
 static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptnlen, const size_t flen)
@@ -64,8 +63,6 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 		}                                                                                            \
 	} while (0)
 
-	do {
-
 #define LOOP_FGREP(i)                                             \
 	do {                                                      \
 		g_c = getc(fp);                                   \
@@ -106,6 +103,7 @@ static INLINE void fgrep(const char *ptn, const char *filename, const size_t ptn
 		}                                                 \
 	} while (0)
 
+	do {
 		LOOP_FGREP(0);
 		LOOP_FGREP(1);
 		LOOP_FGREP(2);
@@ -172,7 +170,6 @@ OUT:
 			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
 			break;                                       \
 		case DT_DIR:                                         \
-			/* skip . , .., .git, .vscode */             \
 			FIND_FGREP_DO_DIR(FUNC_SELF);                \
 		}
 
@@ -201,7 +198,7 @@ OUT:
 			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                  \
 		}                                                                               \
 		closedir(dp);                                                                   \
-		return ;                                                                        \
+		return;                                                                         \
 	}
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
@@ -213,36 +210,36 @@ static INLINE void catv(const char *RESTRICT filename, const size_t flen)
 		return;
 	filename = filename + g_fuldirlen + 1;
 	g_lnp = g_ln;
-	CPY_N_ADV(g_lnp, ANSI_RED);
-	CPY_N_ADV_LEN(g_lnp, filename, flen);
-	CPY_N_ADV(g_lnp, ANSI_RESET ":" ANSI_GREEN "1" ANSI_RESET ":");
-	g_NL = 2;
+	g_NL = 1;
 
-#define LOOP_CAT(i)                                                     \
-	switch (g_lnp[i] = getc(fp)) {                                  \
-	default:                                                        \
-	case '\t':                                                      \
-		break;                                                  \
-	case '\n':                                                      \
-		g_NLbufp = g_NLbuf;                                     \
-		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);       \
-		flockfile(stdout);                                      \
-		fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);        \
-		PRINT_LITERAL(ANSI_RED);                                \
-		fwrite(filename, 1, flen, stdout);                      \
-		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);               \
-		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);             \
-		PRINT_LITERAL(ANSI_RESET ":");                          \
-		funlockfile(stdout);                                    \
-		++g_NL;                                                 \
-		g_lnp = g_ln;                                           \
-		goto CONT;                                              \
-	case EOF:                                                       \
-		g_lnp[i] = '\n';                                        \
-		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout); \
-	case '\0':                                                      \
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL                          \
-		goto OUT;                                               \
+#define LOOP_CAT(i)                                                       \
+	switch (g_lnp[i] = getc(fp)) {                                    \
+	default:                                                          \
+	case '\t':                                                        \
+		break;                                                    \
+	case '\n':                                                        \
+		if (unlikely(g_lnp + i - g_ln)) {                         \
+			g_lnp[i] = '\n';                                  \
+			g_NLbufp = g_NLbuf;                               \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
+			flockfile(stdout);                                \
+			PRINT_LITERAL(ANSI_RED);                          \
+			fwrite(filename, 1, flen, stdout);                \
+			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
+			PRINT_LITERAL(ANSI_RESET ":");                    \
+			fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);  \
+			funlockfile(stdout);                              \
+		}                                                         \
+		++g_NL;                                                   \
+		g_lnp = g_ln;                                             \
+		goto CONT;                                                \
+	case EOF:                                                         \
+		g_lnp[i] = '\n';                                          \
+		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);   \
+	case '\0':                                                        \
+		CASE_UNPRINTABLE_WO_NUL_TAB_NL                            \
+		goto OUT;                                                 \
 	}
 
 	do {
@@ -343,8 +340,8 @@ static INLINE void init_table(char ptn)
 	g_table[(unsigned char)ptn - 'a' + 'A' + 1] = WANTED_UPPER;
 }
 
-#define PTN_ argv[1]
-#define DIR_ argv[2]
+#define PATTERN_ARG argv[1]
+#define DIR_ARG argv[2]
 
 int main(int argc, char **argv)
 {
@@ -360,27 +357,27 @@ int main(int argc, char **argv)
 		return EXIT_SUCCESS;
 	}
 	char ptn[MAX_ARG_LEN];
-	set_pattern(ptn, PTN_);
+	set_pattern(ptn, PATTERN_ARG);
 	init_table(*ptn);
 	init_memmem_table(ptn);
 	if (argc == 2)
 		goto GET_CWD;
-	switch (DIR_[0]) {
+	switch (DIR_ARG[0]) {
 	case '.':
-		if (unlikely(DIR_[1] == '\0'))
+		if (unlikely(DIR_ARG[1] == '\0'))
 			goto GET_CWD;
 	/* FALLTHROUGH */
 	default:
-		if (unlikely(stat(DIR_, &g_st))) {
-			printf("%s not a valid file or dir\n", DIR_);
+		if (unlikely(stat(DIR_ARG, &g_st))) {
+			fprintf(stderr, "%s not a valid file or dir\n", DIR_ARG);
 			return 1;
 		}
 		if (unlikely(S_ISREG(g_st.st_mode))) {
-			g_fuldirlen = strrchr(DIR_, '/') - DIR_;
-			fgrep(ptn, DIR_, strlen(ptn), strlen(DIR_ + g_fuldirlen));
+			g_fuldirlen = strrchr(DIR_ARG, '/') - DIR_ARG;
+			fgrep(ptn, DIR_ARG, strlen(ptn), strlen(DIR_ARG + g_fuldirlen));
 		} else {
-			g_fuldirlen = strlen(DIR_);
-			find_fgrep(ptn, strlen(ptn), DIR_, g_fuldirlen);
+			g_fuldirlen = strlen(DIR_ARG);
+			find_fgrep(ptn, strlen(ptn), DIR_ARG, g_fuldirlen);
 		}
 		break;
 	case '\0':

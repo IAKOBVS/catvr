@@ -182,6 +182,8 @@ static char *base_memmem(const unsigned char *hs, size_t hlen, const unsigned ch
 	const unsigned char *const end = hs + hlen - nlen;
 	size_t m1 = nlen - 1;
 	size_t shift1 = m1 - g_mtable[hash2(ne + m1)];
+	const unsigned char hash = hash2(ne + m1);
+	g_mtable[hash] = m1;
 	size_t tmp;
 	while (hs <= end) {
 		do {
@@ -191,20 +193,22 @@ static char *base_memmem(const unsigned char *hs, size_t hlen, const unsigned ch
 		hs -= tmp;
 		if (tmp < m1)
 			continue;
-		if (memcmp(hs, cne, m1) == 0)
+		if (!memcmp(hs, cne, m1)) {
+			g_mtable[hash] = 0;
 			return (char *)hs;
+		}
 		hs += shift1;
 	}
+	g_mtable[hash] = 0;
 	return NULL;
 }
 
 static void init_memmem_table(const char *ne)
 {
-	const int m1 = strlen(ne) - 1;
 	memset(g_mtable, 0, sizeof(g_mtable));
-	for (int i = 1; i < m1 - 1; i++)
+	const int m1 = strlen(ne) - 1;
+	for (int i = 1; i < m1; i++)
 		g_mtable[hash2(ne + i)] = i;
-	g_mtable[hash2(ne + m1)] = m1;
 }
 
 static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
