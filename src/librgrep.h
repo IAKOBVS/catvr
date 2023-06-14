@@ -22,15 +22,6 @@
 #	define ANSI_RESET ""
 #endif /* USE_ANSI_COLORS */
 
-#define UINT_LEN 10
-
-#if MAX_NEEDLE_LEN > 256
-#	define g_memmem(hs, hlen, ne, nlen) unlikely(ne > 256) ? memmem(hs, hlen, ne, nlen) : g_memmem(hs, hlen, ne, nlen)
-typedef size_t needlelen_t;
-#else
-typedef unsigned int needlelen_t;
-#endif
-
 /* Does not nul terminate */
 #define itoa_uint_pos(s, n, base, digits)                                        \
 	do {                                                                     \

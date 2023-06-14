@@ -16,6 +16,8 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
+static char g_ln[MAX_LINE_LEN + 1];
+static size_t g_lnlen;
 static char *g_found;
 static unsigned int g_fuldirlen;
 static pid_t pid = 1;
@@ -47,23 +49,23 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
-#define DO_REG                                                                                          \
-	do {                                                                                            \
-		const size_t fulpathlen = appendp(fulpath, dir, dlen, ep->d_name) - fulpath;            \
-		if ((g_found = g_memmem(fulpath, fulpathlen, ptn, ptnlen))) {                           \
-			flockfile(stdout);                                                              \
-			fwrite(fulpath, 1, g_found - fulpath, stdout);                                  \
-			PRINT_LITERAL(ANSI_RED);                                                        \
-			fwrite(g_found, 1, ptnlen, stdout);                                             \
-			PRINT_LITERAL(ANSI_RESET);                                                      \
-			fwrite(g_found + ptnlen, 1, fulpathlen - ptnlen - (g_found - fulpath), stdout); \
-			putchar('\n');                                                                  \
-			funlockfile(stdout);                                                            \
-		}                                                                                       \
+#define DO_REG                                                                                    \
+	do {                                                                                      \
+		g_lnlen = appendp(g_ln, dir, dlen, ep->d_name) - g_ln;                            \
+		if ((g_found = g_memmem(g_ln, g_lnlen, ptn, ptnlen))) {                           \
+			flockfile(stdout);                                                        \
+			fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
+			PRINT_LITERAL(ANSI_RED);                                                  \
+			fwrite(g_found, 1, ptnlen, stdout);                                       \
+			PRINT_LITERAL(ANSI_RESET);                                                \
+			fwrite(g_found + ptnlen, 1, g_lnlen - ptnlen - (g_found - g_ln), stdout); \
+			putchar('\n');                                                            \
+			funlockfile(stdout);                                                      \
+		}                                                                                 \
 	} while (0)
 
-#define DO_DIR                                                                                      \
-	IF_EXCLUDED_DO(ep->d_name, continue)                                                        \
+#define DO_DIR                               \
+	IF_EXCLUDED_DO(ep->d_name, continue) \
 	FORK_AND_WAIT(find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen))
 
 #ifdef _DIRENT_HAVE_D_TYPE
