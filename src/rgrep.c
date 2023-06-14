@@ -18,8 +18,8 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
-/* #define flockfile(fp) */
-/* #define funlockfile(fp) */
+#define flockfile(fp)
+#define funlockfile(fp)
 
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
