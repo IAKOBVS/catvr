@@ -13,21 +13,21 @@
 		}                                 \
 	} while (0)
 
-#define FORK_AND_WAIT(DO)                       \
-	do {                                    \
-		if (pid > 0) {                  \
-			IF_FORK_MAX_WAIT_CHILD; \
-			pid = fork();           \
-		}                               \
-		switch (pid) {                  \
-		case 0:                         \
-			DO;                     \
-			break;                  \
-		default:                        \
-			++g_child_tot;          \
-			IF_FORK_MAX_WAIT_CHILD; \
-		case -1:;                       \
-		}                               \
+#define FORK_AND_WAIT(DO)                               \
+	do {                                            \
+		if (likely(pid)) {                      \
+			IF_FORK_MAX_WAIT_CHILD;         \
+			pid = fork();                   \
+			switch (pid) {                  \
+			case 0:                         \
+				DO;                     \
+				break;                  \
+			default:                        \
+				++g_child_tot;          \
+				IF_FORK_MAX_WAIT_CHILD; \
+			case -1:;                       \
+			}                               \
+		}                                       \
 	} while (0)
 
 #endif /* FORK_DEF_H */

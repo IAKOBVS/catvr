@@ -16,23 +16,27 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
+#define flockfile(fp)
+#define funlockfile(fp)
+
 static char g_ln[MAX_LINE_LEN + 1];
 static size_t g_lnlen;
 static char *g_found;
-static unsigned int g_fuldirlen;
 static pid_t pid = 1;
 static unsigned int g_child_tot = 0;
 
 /* #define g_memmem(h, hlen, n, nlen) memmem(h, hlen, n, nlen) */
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action) \
-	if (filename[0] == '.')          \
-		switch (filename[1]) {   \
-		case '.':                \
-		case '\0':               \
-			action;          \
-		}
+#define IF_EXCLUDED_DO(filename, action)         \
+	do {                                     \
+		if ((filename)[0] == '.')        \
+			switch ((filename)[1]) { \
+			case '.':                \
+			case '\0':               \
+				action;          \
+			}                        \
+	} while (0)
 
 static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, const size_t ptnlen)
 {
@@ -41,11 +45,6 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		return;
 	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
-	while ((ep = readdir(dp))) {
-#if DEBUG
-		printf("d->name: %s\n", ep->d_name);
-#endif /* DEBUG */
-
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
@@ -64,11 +63,17 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		}                                                                                 \
 	} while (0)
 
-#define DO_DIR                               \
-	IF_EXCLUDED_DO(ep->d_name, continue) \
-	FORK_AND_WAIT(find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen))
+#define DO_DIR                                                                                 \
+	do {                                                                                   \
+		IF_EXCLUDED_DO(ep->d_name, goto CONT);                                         \
+		find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen); \
+	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
+	while ((ep = readdir(dp))) {
+#if DEBUG
+		printf("d->name: %s\n", ep->d_name);
+#endif /* DEBUG */
 		switch (ep->d_type) {
 		case DT_REG:
 			DO_REG;
@@ -79,7 +84,7 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
-			return;
+			continue;
 		if (S_ISREG(g_st.st_mode))
 			DO_REG;
 		else if (S_ISDIR(g_st.st_mode))
@@ -88,6 +93,7 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
+	CONT:;
 	}
 	closedir(dp);
 }
@@ -117,6 +123,7 @@ int main(int argc, char **argv)
 	char *ptn;
 	char *dir;
 	size_t ptnlen;
+	size_t dlen;
 	switch (argc) {
 	case 1:
 		ptn = "";
@@ -128,19 +135,19 @@ int main(int argc, char **argv)
 		ptn = ptnbuf;
 	dotdir:
 		dir = ".";
-		g_fuldirlen = 1;
+		dlen = 1;
 		break;
 	case 3:
 		ptnlen = init_ptn(ptnbuf, argv[1]);
 		ptn = ptnbuf;
 		dir = argv[2];
-		g_fuldirlen = strlen(dir);
+		dlen = strlen(dir);
 		break;
 	default:
 		fputs("Usage: ./rfind <pattern> <dir>\ndir is PWD by default\n", stderr);
 		return 0;
 	}
 	init_memmem(ptn, ptnlen);
-	find(dir, g_fuldirlen, ptn, ptnlen);
+	find(dir, dlen, ptn, ptnlen);
 	return 0;
 }

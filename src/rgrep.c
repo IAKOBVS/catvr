@@ -18,6 +18,9 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
+/* #define flockfile(fp) */
+/* #define funlockfile(fp) */
+
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -30,169 +33,151 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	if (likely(g_fuldirlen))
 		filename = filename + g_fuldirlen + 1;
 
-#define CPY_N_ADV(dst, src)                        \
-	do {                                       \
-		memcpy(dst, src, sizeof(src) - 1); \
-		(dst) += (sizeof(src) - 1);        \
-	} while (0)
-
-#define CPY_N_ADV_LEN(dst, src, n)   \
-	do {                         \
-		memcpy(dst, src, n); \
-		(dst) += (n);        \
-	} while (0)
-
 #define PRINT_LITERAL(s) \
 	fwrite(s, 1, sizeof(s) - 1, stdout)
 
-#define PRINT_LN(i)                                                                                                \
-	do {                                                                                                       \
-		g_lnlen = (g_lnp + i) - g_ln + 1;                                                                  \
-		if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, needle, needlelen))) { \
-			g_found = g_ln + (g_found - g_lnlower);                                                    \
-			g_NLbufp = g_NLbuf;                                                                        \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                          \
-			flockfile(stdout);                                                                         \
-			PRINT_LITERAL(ANSI_RED);                                                                   \
-			fwrite(filename, 1, flen, stdout);                                                         \
-			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                                  \
-			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                                \
-			PRINT_LITERAL(ANSI_RESET ":");                                                             \
-			fwrite(g_ln, 1, g_found - g_ln, stdout);                                                   \
-			PRINT_LITERAL(ANSI_RED);                                                                   \
-			fwrite(g_found, 1, needlelen, stdout);                                                     \
-			PRINT_LITERAL(ANSI_RESET);                                                                 \
-			fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
-			funlockfile(stdout);                                                                       \
-		}                                                                                                  \
-	} while (0)
-
-#define LOOP_FGREP(i)                                             \
-	do {                                                      \
-		g_c = getc(fp);                                   \
-		switch (g_table[g_c + 1]) {                       \
-		case WANTED_UPPER:                                \
-			if (!g_first_match)                       \
-				g_first_match = g_lnp + i - g_ln; \
-			/* FALLTHROUGH */                         \
-		case UPPER:                                       \
-			g_lnp[i] = g_c;                           \
-			g_lnlowerp[i] = g_c - 'A' + 'a';          \
-			break;                                    \
-		case WANTED:                                      \
-			if (!g_first_match)                       \
-				g_first_match = g_lnp + i - g_ln; \
-			/* FALLTHROUGH */                         \
-		default:                                          \
-			g_lnp[i] = g_c;                           \
-			g_lnlowerp[i] = g_c;                      \
-			break;                                    \
-		case NEWLINE:                                     \
-			if (g_first_match) {                      \
-				g_lnp[i] = '\n';                  \
-				PRINT_LN(i);                      \
-				g_first_match = 0;                \
-			}                                         \
-			++g_NL;                                   \
-			g_lnp = g_ln;                             \
-			g_lnlowerp = g_lnlower;                   \
-			goto CONT;                                \
-		case END_OF_FILE:                                 \
-			g_lnp[i] = '\n';                          \
-			if (g_first_match)                        \
-				PRINT_LN(i);                      \
-			/* FALLTHROUGH */                         \
-		case REJECT:                                      \
-			goto OUT;                                 \
-		}                                                 \
-	} while (0)
-
 	do {
-		LOOP_FGREP(0);
-		LOOP_FGREP(1);
-		LOOP_FGREP(2);
-		LOOP_FGREP(3);
-		g_lnp += 4, g_lnlowerp += 4;
-	CONT:;
-	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
+	CONT:
+		g_c = getc(fp);
+		switch (g_table[g_c + 1]) {
+		case WANTED_UPPER:
+			if (!g_first_match)
+				g_first_match = g_lnp - g_ln;
+			/* FALLTHROUGH */
+		case UPPER:
+			*g_lnp = g_c;
+			*g_lnlowerp = g_c - 'A' + 'a';
+			break;
+		case WANTED:
+			if (!g_first_match)
+				g_first_match = g_lnp - g_ln;
+			/* FALLTHROUGH */
+		default:
+			*g_lnp = g_c;
+			*g_lnlowerp = g_c;
+			break;
+		case NEWLINE:
+			if (g_first_match) {
+#define PRINT_LN                                                                                                           \
+	do {                                                                                                               \
+			g_lnlen = g_lnp - g_ln;                                                                            \
+			if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, needle, needlelen))) { \
+				g_found = g_ln + (g_found - g_lnlower);                                                    \
+				g_NLbufp = g_NLbuf;                                                                        \
+				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                          \
+				flockfile(stdout);                                                                         \
+				PRINT_LITERAL(ANSI_RED);                                                                   \
+				fwrite(filename, 1, flen, stdout);                                                         \
+				PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                                  \
+				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                                \
+				PRINT_LITERAL(ANSI_RESET ":");                                                             \
+				fwrite(g_ln, 1, g_found - g_ln, stdout);                                                   \
+				PRINT_LITERAL(ANSI_RED);                                                                   \
+				fwrite(g_found, 1, needlelen, stdout);                                                     \
+				PRINT_LITERAL(ANSI_RESET);                                                                 \
+				fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
+				putchar('\n');                                                                             \
+				funlockfile(stdout);                                                                       \
+			}                                                                                                  \
+	} while (0)
+				PRINT_LN;
+				g_first_match = 0;
+			}
+			++g_NL;
+			g_lnp = g_ln;
+			g_lnlowerp = g_lnlower;
+			goto CONT;
+		case END_OF_FILE:
+			if (g_first_match)
+				PRINT_LN;
+			/* FALLTHROUGH */
+		case REJECT:
+			goto OUT;
+		}
+		++g_lnlowerp, ++g_lnp;
+	} while (g_lnp - g_ln != MAX_LINE_LEN);
 OUT:
 	fclose(fp);
 }
 
 #define IF_EXCLUDED_REG_DO(filename, action) \
-	if ((filename)[0] == '.'             \
-	&& (filename)[1] == 'c'              \
-	&& (filename)[2] == 'l'              \
-	&& (filename)[3] == 'a'              \
-	&& (filename)[4] == 'n'              \
-	&& (filename)[5] == 'g'              \
-	&& (filename)[6] == '-'              \
-	&& (filename)[7] == 'f'              \
-	&& (filename)[8] == 'o'              \
-	&& (filename)[9] == 'r'              \
-	&& (filename)[10] == 'm'             \
-	&& (filename)[11] == 'a'             \
-	&& (filename)[12] == 't')            \
-	action
+	do {                                 \
+		if ((filename)[0] == '.'     \
+		&& (filename)[1] == 'c'      \
+		&& (filename)[2] == 'l'      \
+		&& (filename)[3] == 'a'      \
+		&& (filename)[4] == 'n'      \
+		&& (filename)[5] == 'g'      \
+		&& (filename)[6] == '-'      \
+		&& (filename)[7] == 'f'      \
+		&& (filename)[8] == 'o'      \
+		&& (filename)[9] == 'r'      \
+		&& (filename)[10] == 'm'     \
+		&& (filename)[11] == 'a'     \
+		&& (filename)[12] == 't')    \
+			action;              \
+	} while (0)
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DIR_DO(filename, action)     \
-	if ((filename)[0] == '.')                \
-		switch ((filename)[1]) {         \
-		case '.':                        \
-		case '\0':                       \
-			action;                  \
-			break;                   \
-		case 'g':                        \
-			if ((filename)[2] == 'i' \
-			&& (filename)[3] == 't') \
-				action;          \
-			break;                   \
-		case 'v':                        \
-			if ((filename)[2] == 's' \
-			&& (filename)[3] == 'c'  \
-			&& (filename)[4] == 'o'  \
-			&& (filename)[5] == 'd'  \
-			&& (filename)[6] == 'e') \
-				action;          \
-			break;                   \
-		}
+#define IF_EXCLUDED_DIR_DO(filename, action)             \
+	do {                                             \
+		if ((filename)[0] == '.')                \
+			switch ((filename)[1]) {         \
+			case '.':                        \
+			case '\0':                       \
+				action;                  \
+				break;                   \
+			case 'g':                        \
+				if ((filename)[2] == 'i' \
+				&& (filename)[3] == 't') \
+					action;          \
+				break;                   \
+			case 'v':                        \
+				if ((filename)[2] == 's' \
+				&& (filename)[3] == 'c'  \
+				&& (filename)[4] == 'o'  \
+				&& (filename)[5] == 'd'  \
+				&& (filename)[6] == 'e') \
+					action;          \
+				break;                   \
+			}                                \
+	} while (0)
 
-#define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                                 \
-	if (USE_LEN)                                                                                                         \
-		FUNC_REG(needle, fulpath, needlelen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
-	else                                                                                                                 \
-		FUNC_REG(needle, fulpath, 0, 0)
+#define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                                         \
+	do {                                                                                                                         \
+		IF_EXCLUDED_REG_DO(ep->d_name, goto CONT);                                                                           \
+		if (USE_LEN)                                                                                                         \
+			FUNC_REG(needle, fulpath, needlelen, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
+		else                                                                                                                 \
+			FUNC_REG(needle, fulpath, 0, 0);                                                                             \
+	} while (0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)             \
-	IF_EXCLUDED_DIR_DO(ep->d_name, continue) \
-	FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                      \
+	do {                                                                                              \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                \
+		FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		switch (ep->d_type) {                                \
-		case DT_REG:                                         \
-			IF_EXCLUDED_REG_DO(ep->d_name, continue);    \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-			break;                                       \
-		case DT_DIR:                                         \
-			IF_EXCLUDED_DIR_DO(ep->d_name, continue)     \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		switch (ep->d_type) {                               \
+		case DT_REG:                                        \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+			break;                                      \
+		case DT_DIR:                                        \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
 		}
 
 #else
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		if (unlikely(stat(dir, &g_st)))                      \
-			continue;                                    \
-		if (S_ISREG(g_st.st_mode)) {                         \
-			IF_EXCLUDED_REG_DO(ep->d_name, continue);    \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-		} else if (S_ISDIR(g_st.st_mode)) {                  \
-			IF_EXCLUDED_DIR_DO(ep->d_name, continue)     \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
-		}
+		if (unlikely(stat(dir, &g_st)))                     \
+			continue;                                   \
+		if (S_ISREG(g_st.st_mode))                          \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+		else if (S_ISDIR(g_st.st_mode))                     \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
@@ -206,6 +191,7 @@ OUT:
 		char fulpath[MAX_PATH_LEN];                                                           \
 		while ((ep = readdir(dp))) {                                                          \
 			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                        \
+		CONT:;                                                                                \
 		}                                                                                     \
 		closedir(dp);                                                                         \
 		return;                                                                               \
@@ -222,15 +208,17 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		filename = filename + g_fuldirlen + 1;
 	g_lnp = g_ln;
 	g_NL = 1;
-
-#define LOOP_CAT(i)                                                       \
-	switch (g_lnp[i] = getc(fp)) {                                    \
-	default:                                                          \
-	case '\t':                                                        \
-		break;                                                    \
-	case '\n':                                                        \
-		if (unlikely(g_lnp + i - g_ln)) {                         \
-			g_lnp[i] = '\n';                                  \
+	do {
+	CONT:;
+		switch (*g_lnp = getc(fp)) {
+		default:
+		case '\t':
+			break;
+		case '\n':
+			if (unlikely(g_lnp - g_ln == 1))
+				break;
+#define CAT_PRINT_LN                                                      \
+	do {                                                              \
 			g_NLbufp = g_NLbuf;                               \
 			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
 			flockfile(stdout);                                \
@@ -239,28 +227,24 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
 			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
 			PRINT_LITERAL(ANSI_RESET ":");                    \
-			fwrite(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);  \
+			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
 			funlockfile(stdout);                              \
-		}                                                         \
-		++g_NL;                                                   \
-		g_lnp = g_ln;                                             \
-		goto CONT;                                                \
-	case EOF:                                                         \
-		g_lnp[i] = '\n';                                          \
-		fwrite_locked(g_ln, 1, (g_lnp + i) - g_ln + 1, stdout);   \
-	case '\0':                                                        \
-		CASE_UNPRINTABLE_WO_NUL_TAB_NL                            \
-		goto OUT;                                                 \
-	}
-
-	do {
-		LOOP_CAT(0);
-		LOOP_CAT(1);
-		LOOP_CAT(2);
-		LOOP_CAT(3);
-		g_lnp += 4;
-	CONT:;
-	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
+	} while (0)
+			CAT_PRINT_LN;
+			++g_NL;
+			g_lnp = g_ln;
+			goto CONT;
+		case EOF:
+			if (unlikely(g_lnp - g_ln == 1))
+				break;
+			*g_lnp = '\n';
+			CAT_PRINT_LN;
+		case '\0':
+			CASE_UNPRINTABLE_WO_NUL_TAB_NL
+			goto OUT;
+		}
+		++g_lnp;
+	} while (g_lnp - g_ln != MAX_LINE_LEN);
 OUT:
 	fclose(fp);
 }
@@ -272,18 +256,23 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 		return;
 	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
+
+#define FIND_CAT_DO_REG                                                                              \
+	do {                                                                                         \
+		IF_EXCLUDED_REG_DO(ep->d_name, goto CONT);                                           \
+		cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
+	} while (0)
+
+#define FIND_CAT_DO_DIR                                                               \
+	do {                                                                          \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                            \
+		find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+	} while (0)
+
 	while ((ep = readdir(dp))) {
 #if DEBUG
 		printf("d->name: %s\n", ep->d_name);
 #endif /* DEBUG */
-
-#define FIND_CAT_DO_REG \
-	cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
-
-#define FIND_CAT_DO_DIR                          \
-	IF_EXCLUDED_DIR_DO(ep->d_name, continue) \
-	FORK_AND_WAIT(find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
-
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
@@ -295,7 +284,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 		}
 #else
 		if (unlikely(stat(dir, &g_st)))
-			return;
+			continue;
 		if (S_ISREG(g_st.st_mode))
 			FIND_CAT_DO_REG;
 		else if (S_ISDIR(g_st.st_mode))
@@ -304,6 +293,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
+CONT:;
 	}
 	closedir(dp);
 }
@@ -375,8 +365,8 @@ int main(int argc, char **argv)
 			g_fuldirlen = end ? end - DIR_ARG : 0;
 			fgrep(needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG + g_fuldirlen));
 		} else if (S_ISDIR(g_st.st_mode)) {
-			g_fuldirlen = strlen(DIR_ARG);
-			find_fgrep(needlebuf, needlebuflen, DIR_ARG, g_fuldirlen);
+			g_fuldirlen = 0;
+			find_fgrep(needlebuf, needlebuflen, DIR_ARG, strlen(DIR_ARG));
 		} else {
 			no_such_file(DIR_ARG);
 			return 1;
