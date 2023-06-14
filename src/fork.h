@@ -5,12 +5,12 @@
 
 #define g_child_max MAX_FORKS
 
-#define IF_FORK_MAX_WAIT_CHILD                    \
-	do {                                      \
-		if (g_child_tot == g_child_max) { \
-			wait(NULL);               \
-			--g_child_tot;            \
-		}                                 \
+#define IF_FORK_MAX_WAIT_CHILD                      \
+	do {                                        \
+		if (g_child_alive == g_child_max) { \
+			wait(NULL);                 \
+			--g_child_alive;            \
+		}                                   \
 	} while (0)
 
 #define FORK_AND_WAIT(DO)                               \
@@ -23,7 +23,7 @@
 				DO;                     \
 				break;                  \
 			default:                        \
-				++g_child_tot;          \
+				++g_child_alive;        \
 				IF_FORK_MAX_WAIT_CHILD; \
 			case -1:;                       \
 			}                               \

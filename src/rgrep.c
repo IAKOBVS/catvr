@@ -155,6 +155,22 @@ OUT:
 #define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                      \
 	do {                                                                                              \
 		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                \
+		if (pid == 0) {                                                                           \
+			if (g_child_alive == g_child_max) {                                               \
+				wait(NULL);                                                               \
+				--g_child_alive;                                                          \
+			}                                                                                 \
+			pid = fork();                                                                     \
+			switch (pid) {                                                                    \
+			case 0:                                                                           \
+				goto DO_DIR;                                                              \
+			default:                                                                          \
+				++g_child_alive;                                                          \
+			case -1:;                                                                         \
+			}                                                                                 \
+			break;                                                                            \
+		}                                                                                         \
+DO_DIR:                                                                                                   \
 		FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 	} while (0)
 
@@ -279,6 +295,22 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 			FIND_CAT_DO_REG;
 			break;
 		case DT_DIR:
+		if (pid == 0) {
+			if (g_child_alive == g_child_max) {
+				wait(NULL);
+				--g_child_alive;
+			}
+			pid = fork();
+			switch (pid) {
+			case 0:
+				goto DO_DIR;
+			default:
+				++g_child_alive;
+			case -1:;
+			}
+			break;
+		}
+DO_DIR:
 			FIND_CAT_DO_DIR;
 			break;
 		}

@@ -23,7 +23,7 @@ static char g_ln[MAX_LINE_LEN + 1];
 static size_t g_lnlen;
 static char *g_found;
 static pid_t pid = 1;
-static unsigned int g_child_tot = 0;
+static unsigned int g_child_alive = 0;
 
 /* #define g_memmem(h, hlen, n, nlen) memmem(h, hlen, n, nlen) */
 

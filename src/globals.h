@@ -22,7 +22,7 @@ static struct stat g_st;
 static int g_c;
 static int g_first_match;
 
-static unsigned int g_child_tot;
+static unsigned int g_child_alive;
 static pid_t pid = 1;
 
 #endif /* GLOBALS_DEF_H */
