@@ -109,14 +109,12 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 
 	do {
 		LOOP_FGREP(0);
-		/* LOOP_FGREP(1); */
-		/* LOOP_FGREP(2); */
-		/* LOOP_FGREP(3); */
-		++g_lnp, ++g_lnlowerp;
-		/* g_lnp += 4, g_lnlowerp += 4; */
+		LOOP_FGREP(1);
+		LOOP_FGREP(2);
+		LOOP_FGREP(3);
+		g_lnp += 4, g_lnlowerp += 4;
 	CONT:;
-	} while (g_lnp - g_ln != MAX_LINE_LEN);
-	/* } while (MAX_LINE_LEN - 4 > (g_lnp - g_ln)); */
+	} while (MAX_LINE_LEN - 4 > (g_lnp - g_ln));
 OUT:
 	fclose(fp);
 }
@@ -135,10 +133,10 @@ OUT:
 	&& (filename)[10] == 'm'             \
 	&& (filename)[11] == 'a'             \
 	&& (filename)[12] == 't')            \
-	action
+		action
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action)         \
+#define IF_EXCLUDED_DIR_DO(filename, action)     \
 	if ((filename)[0] == '.')                \
 		switch ((filename)[1]) {         \
 		case '.':                        \
@@ -167,31 +165,33 @@ OUT:
 		FUNC_REG(needle, fulpath, 0, 0)
 
 #define FIND_FGREP_DO_DIR(FUNC_SELF)         \
-	IF_EXCLUDED_DO(ep->d_name, continue) \
+	IF_EXCLUDED_DIR_DO(ep->d_name, continue) \
 	FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		switch (ep->d_type) {                                \
-		case DT_REG:                                         \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-			break;                                       \
-		case DT_DIR:                                         \
-			IF_EXCLUDED_REG_DO(ep->d_name, continue);    \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		switch (ep->d_type) {                               \
+		case DT_REG:                                        \
+			IF_EXCLUDED_REG_DO(ep->d_name, continue);   \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+			break;                                      \
+		case DT_DIR:                                        \
+			IF_EXCLUDED_DIR_DO(ep->d_name, continue)    \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
 		}
 
 #else
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		if (unlikely(stat(dir, &g_st)))                      \
-			continue;                                    \
-		if (S_ISREG(g_st.st_mode)) {                         \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-		} else if (S_ISDIR(g_st.st_mode)) {                  \
-			IF_EXCLUDED_REG_DO(ep->d_name, continue);    \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
+		if (unlikely(stat(dir, &g_st)))                     \
+			continue;                                   \
+		if (S_ISREG(g_st.st_mode)) {                        \
+			IF_EXCLUDED_REG_DO(ep->d_name, continue);   \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+		} else if (S_ISDIR(g_st.st_mode)) {                 \
+			IF_EXCLUDED_DIR_DO(ep->d_name, continue)    \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
 		}
 
 #endif /* _DIRENT_HAVE_D_TYPE */
@@ -280,8 +280,8 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #define FIND_CAT_DO_REG \
 	cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1)
 
-#define FIND_CAT_DO_DIR                      \
-	IF_EXCLUDED_DO(ep->d_name, continue) \
+#define FIND_CAT_DO_DIR                                                                     \
+	IF_EXCLUDED_DIR_DO(ep->d_name, continue)                                            \
 	FORK_AND_WAIT(find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath))
 
 #ifdef _DIRENT_HAVE_D_TYPE
