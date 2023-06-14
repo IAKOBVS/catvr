@@ -18,6 +18,7 @@ for file in $(echo *.c); do
 	{
 	bin=../bin/${file%.*}
 	if test "$file" -nt "$bin"; then
+		grep -q -F 'pthread.h' "$file" && set -- $@ -pthread
 		$compiler $@ "$file" -o "$bin" &&
 		echo "$file successfuly compiled!" &&
 		cp "$bin" "$scripts_dir/${bin##*/}" &&
