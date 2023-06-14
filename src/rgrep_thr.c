@@ -24,6 +24,8 @@
 #undef MAX_LINE_LEN
 #define MAX_LINE_LEN 256
 
+pthread_t t[MAX_FORKS];
+
 typedef struct fgrep_args {
 	const char *needle;
 	const char *filename;
@@ -93,7 +95,7 @@ static INLINE void *fgrep(void *args)
 				fwrite(g_found, 1, arg->nlen, stdout);                                                    \
 				PRINT_LITERAL(ANSI_RESET);                                                                \
 				fwrite(g_found + arg->nlen, 1, lnlen - (g_found - ln + arg->nlen), stdout);               \
-				fflush(stderr);                                                                           \
+				fflush(stdout);                                                                           \
 				putchar('\n');                                                                            \
 				funlockfile(stdout);                                                                      \
 			}                                                                                                 \
@@ -177,7 +179,6 @@ OUT:
 		if (thr_alive != MAX_FORKS) {                                                                                    \
 			++thr_alive;                                                                                             \
 			pthread_mutex_unlock(&alive_mtx);                                                                        \
-			pthread_t t;                                                                                             \
 			if (unlikely(pthread_create(&t, NULL, &FUNC_SELF, &a)))                                                  \
 				fputs("Can't create thread", stderr);                                                            \
 		} else {                                                                                                         \
@@ -283,7 +284,6 @@ int main(int argc, char **argv)
 	|| !argv[1][0]) {
 		return 0;
 	}
-	pthread_t t;
 	char needlebuf[MAX_NEEDLE_LEN + 1];
 	const size_t needlebuflen = init_needle(needlebuf, NEEDLE_ARG);
 	init_fgrep(*needlebuf);
@@ -302,11 +302,13 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(st.st_mode))) {
 			fgrep_args args = { needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG) };
-			pthread_create(&t, NULL, &fgrep, &args);
+			fgrep(&args);
+			/* pthread_create(&t, NULL, &fgrep, &args); */
 			/* fgrep(needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG)); */
 		} else if (S_ISDIR(st.st_mode)) {
 			find_args args = { needlebuf, needlebuflen, DIR_ARG, strlen(DIR_ARG) };
-			pthread_create(&t, NULL, &find_fgrep, &args);
+			find_fgrep(&args);
+			/* pthread_create(&t, NULL, &find_fgrep, &args); */
 			/* find_fgrep(&args); */
 		} else {
 			no_such_file(DIR_ARG);
@@ -316,11 +318,12 @@ int main(int argc, char **argv)
 	case '\0':
 	GET_CWD: {
 		find_args args = { needlebuf, needlebuflen, ".", 1 };
-		pthread_create(&t, NULL, &find_fgrep, &args);
-		/* find_fgrep(&args); */
+		find_fgrep(&args);
+		/* pthread_create(&t, NULL, &find_fgrep, &args); */
 		break;
 		}
 	}
-	pthread_join(t, NULL);
+	for (int i = 0; i < MAX_FORKS; ++i)
+		pthread_join(t[i], NULL);
 	return 0;
 }
