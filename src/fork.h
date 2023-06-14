@@ -7,7 +7,7 @@
 
 #define IF_FORK_MAX_WAIT_CHILD                      \
 	do {                                        \
-		if (g_child_alive == g_child_max) { \
+		if (g_child_alive >= g_child_max) { \
 			wait(NULL);                 \
 			--g_child_alive;            \
 		}                                   \
@@ -15,12 +15,16 @@
 
 #define FORK_AND_WAIT(DO)                               \
 	do {                                            \
-		if (likely(pid)) {                      \
+		if (likely(pid == 0)) {                 \
+			DO;                             \
+		} else {                                \
 			IF_FORK_MAX_WAIT_CHILD;         \
+			fflush(stdout);                 \
 			pid = fork();                   \
 			switch (pid) {                  \
 			case 0:                         \
 				DO;                     \
+				_exit(0);               \
 				break;                  \
 			default:                        \
 				++g_child_alive;        \

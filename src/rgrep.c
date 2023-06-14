@@ -18,8 +18,8 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
-#define flockfile(fp)
-#define funlockfile(fp)
+/* #define flockfile(fp) */
+/* #define funlockfile(fp) */
 
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
@@ -152,26 +152,10 @@ OUT:
 			FUNC_REG(needle, fulpath, 0, 0);                                                                             \
 	} while (0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                      \
-	do {                                                                                              \
-		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                \
-		if (pid == 0) {                                                                           \
-			if (g_child_alive == g_child_max) {                                               \
-				wait(NULL);                                                               \
-				--g_child_alive;                                                          \
-			}                                                                                 \
-			pid = fork();                                                                     \
-			switch (pid) {                                                                    \
-			case 0:                                                                           \
-				goto DO_DIR;                                                              \
-			default:                                                                          \
-				++g_child_alive;                                                          \
-			case -1:;                                                                         \
-			}                                                                                 \
-			break;                                                                            \
-		}                                                                                         \
-DO_DIR:                                                                                                   \
-		FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                     \
+	do {                                                                                                             \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                               \
+		FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -279,10 +263,10 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 		cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - (fulpath + g_fuldirlen) - 1); \
 	} while (0)
 
-#define FIND_CAT_DO_DIR                                                               \
-	do {                                                                          \
-		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                            \
-		find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+#define FIND_CAT_DO_DIR                                                                              \
+	do {                                                                                         \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                           \
+		FORK_AND_WAIT(find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
 	} while (0)
 
 	while ((ep = readdir(dp))) {
@@ -295,22 +279,6 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 			FIND_CAT_DO_REG;
 			break;
 		case DT_DIR:
-		if (pid == 0) {
-			if (g_child_alive == g_child_max) {
-				wait(NULL);
-				--g_child_alive;
-			}
-			pid = fork();
-			switch (pid) {
-			case 0:
-				goto DO_DIR;
-			default:
-				++g_child_alive;
-			case -1:;
-			}
-			break;
-		}
-DO_DIR:
 			FIND_CAT_DO_DIR;
 			break;
 		}
