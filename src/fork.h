@@ -58,7 +58,7 @@ static INLINE void free_shm()
 			switch (g_pid) {                \
 			case 0:                         \
 				++*g_child_alive;       \
-				dup(1);                 \
+				dup(STDOUT_FILENO);     \
 				DO;                     \
 				--*g_child_alive;       \
 				_exit(0);               \
