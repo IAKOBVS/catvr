@@ -30,11 +30,6 @@ static INLINE void init_shm()
 	dgts = shmget(key, sizeof(int), 0666 | IPC_CREAT);
 	g_child_alive = shmat(dgts, NULL, 0);
 	*g_child_alive = 0;
-	/* stdout_fp = fopen("/dev/stdout", "w"); */
-	/* if (unlikely(!stdout_fp)) { */
-	/* 	fputs("Can't open /dev/tty to write\n", stderr); */
-	/* 	exit(1); */
-	/* } */
 	/* sem_init(&g_alive_mutex, 1, 1); */
 }
 
@@ -44,7 +39,6 @@ static INLINE void free_shm()
 	while (wait(NULL) != -1)
 		;
 	shmdt(&g_child_alive);
-	/* fclose(stdout_fp); */
 }
 
 #define IF_FORK_MAX_WAIT_CHILD                               \
