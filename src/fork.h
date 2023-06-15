@@ -4,6 +4,8 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 /* #include <semaphore.h> */
 
 #include "config.h"
@@ -13,6 +15,7 @@
 
 static pid_t g_pid = 1;
 static int *g_child_alive;
+/* FILE *stdout_fp; */
 /* static sem_t g_alive_mutex; */
 
 static INLINE void init_shm()
@@ -28,15 +31,20 @@ static INLINE void init_shm()
 	dgts = shmget(key, sizeof(int), 0666 | IPC_CREAT);
 	g_child_alive = shmat(dgts, NULL, 0);
 	*g_child_alive = 0;
+	/* stdout_fp = fopen("/dev/stdout", "w"); */
+	/* if (unlikely(!stdout_fp)) { */
+	/* 	fputs("Can't open /dev/tty to write\n", stderr); */
+	/* 	exit(1); */
+	/* } */
 	/* sem_init(&g_alive_mutex, 1, 1); */
 }
 
 static INLINE void free_shm()
 {
 	/* sem_destroy(&g_alive_mutex); */
-	while (wait(NULL) != -1)
-		;
+	while (wait(NULL) != -1);
 	shmdt(&g_child_alive);
+	/* fclose(stdout_fp); */
 }
 
 #define IF_FORK_MAX_WAIT_CHILD                               \
@@ -45,17 +53,20 @@ static INLINE void free_shm()
 			wait(NULL);                          \
 	} while (0)
 
+#define stdout_fp stdout
+
 #define FORK_AND_WAIT(DO)                               \
 	do {                                            \
 		if (unlikely(g_pid == 0)) {             \
 			DO;                             \
 		} else {                                \
 			IF_FORK_MAX_WAIT_CHILD;         \
-			fflush(stdout);                 \
+			fflush(stdout_fp);              \
 			g_pid = fork();                 \
 			switch (g_pid) {                \
 			case 0:                         \
 				++*g_child_alive;       \
+				dup(1);                 \
 				DO;                     \
 				--*g_child_alive;       \
 				_exit(0);               \

@@ -18,6 +18,8 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
+#define stdout_fp stdout
+
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -31,7 +33,7 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 		filename = filename + g_fuldirlen + 1;
 
 #define PRINT_LITERAL(s) \
-	fwrite(s, 1, sizeof(s) - 1, stdout)
+	fwrite(s, 1, sizeof(s) - 1, stdout_fp)
 
 	do {
 	CONT:
@@ -62,19 +64,20 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 			g_found = g_ln + (g_found - g_lnlower);                                                    \
 			g_NLbufp = g_NLbuf;                                                                        \
 			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                          \
-			flockfile(stdout);                                                                         \
+			flockfile(stdout_fp);                                                                      \
 			PRINT_LITERAL(ANSI_RED);                                                                   \
-			fwrite(filename, 1, flen, stdout);                                                         \
+			fwrite(filename, 1, flen, stdout_fp);                                                      \
 			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                                  \
-			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                                \
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout_fp);                                             \
 			PRINT_LITERAL(ANSI_RESET ":");                                                             \
-			fwrite(g_ln, 1, g_found - g_ln, stdout);                                                   \
+			fwrite(g_ln, 1, g_found - g_ln, stdout_fp);                                                \
 			PRINT_LITERAL(ANSI_RED);                                                                   \
-			fwrite(g_found, 1, needlelen, stdout);                                                     \
+			fwrite(g_found, 1, needlelen, stdout_fp);                                                  \
 			PRINT_LITERAL(ANSI_RESET);                                                                 \
-			fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
+			fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout_fp);         \
 			putchar('\n');                                                                             \
-			funlockfile(stdout);                                                                       \
+			fflush_unlocked(stdout_fp);                                                                \
+			funlockfile(stdout_fp);                                                                    \
 		}                                                                                                  \
 	} while (0)
 				PRINT_LN;
@@ -214,18 +217,19 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		case '\n':
 			if (unlikely(g_lnp - g_ln == 0))
 				goto CONT;
-#define CAT_PRINT_LN                                              \
-	do {                                                      \
-		g_NLbufp = g_NLbuf;                               \
-		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
-		flockfile(stdout);                                \
-		PRINT_LITERAL(ANSI_RED);                          \
-		fwrite(filename, 1, flen, stdout);                \
-		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
-		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
-		PRINT_LITERAL(ANSI_RESET ":");                    \
-		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-		funlockfile(stdout);                              \
+#define CAT_PRINT_LN                                                     \
+	do {                                                             \
+		g_NLbufp = g_NLbuf;                                      \
+		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);        \
+		flockfile(stdout_fp);                                       \
+		PRINT_LITERAL(ANSI_RED);                                 \
+		fwrite(filename, 1, flen, stdout_fp);                       \
+		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                \
+		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout_fp);              \
+		PRINT_LITERAL(ANSI_RESET ":");                           \
+		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout_fp);               \
+		fflush_unlocked(stdout_fp);                                 \
+		funlockfile(stdout_fp);                                     \
 	} while (0)
 			CAT_PRINT_LN;
 			++g_NL;
@@ -336,6 +340,9 @@ static void no_such_file(const char *entry)
 int main(int argc, char **argv)
 {
 	init_shm();
+	/* setvbuf(stdout_fp, NULL, _IOLBF, BUFSIZ); */
+	if (unlikely(!stdout_fp))
+		return 1;
 	if (argc == 1
 	|| !argv[1][0]) {
 		g_fuldirlen = 1;
