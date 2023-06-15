@@ -12,11 +12,15 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "fork.h"
+/* #include "fork.h" */
 #include "g_memmem.h"
 #include "globals.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
+
+#define FORK_AND_WAIT(x) (x)
+#define init_shm()
+#define free_shm()
 
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
@@ -98,47 +102,47 @@ OUT:
 	fclose(fp);
 }
 
-#define IF_EXCLUDED_REG_DO(filename, action) \
-	do {                                 \
-		if ((filename)[0] == '.'     \
-		&& (filename)[1] == 'c'      \
-		&& (filename)[2] == 'l'      \
-		&& (filename)[3] == 'a'      \
-		&& (filename)[4] == 'n'      \
-		&& (filename)[5] == 'g'      \
-		&& (filename)[6] == '-'      \
-		&& (filename)[7] == 'f'      \
-		&& (filename)[8] == 'o'      \
-		&& (filename)[9] == 'r'      \
-		&& (filename)[10] == 'm'     \
-		&& (filename)[11] == 'a'     \
-		&& (filename)[12] == 't')    \
-			action;              \
+#define IF_EXCLUDED_REG_DO(filename, action)  \
+	do {                                  \
+		if ((filename)[0] == '.'      \
+		    && (filename)[1] == 'c'   \
+		    && (filename)[2] == 'l'   \
+		    && (filename)[3] == 'a'   \
+		    && (filename)[4] == 'n'   \
+		    && (filename)[5] == 'g'   \
+		    && (filename)[6] == '-'   \
+		    && (filename)[7] == 'f'   \
+		    && (filename)[8] == 'o'   \
+		    && (filename)[9] == 'r'   \
+		    && (filename)[10] == 'm'  \
+		    && (filename)[11] == 'a'  \
+		    && (filename)[12] == 't') \
+			action;               \
 	} while (0)
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DIR_DO(filename, action)             \
-	do {                                             \
-		if ((filename)[0] == '.')                \
-			switch ((filename)[1]) {         \
-			case '.':                        \
-			case '\0':                       \
-				action;                  \
-				break;                   \
-			case 'g':                        \
-				if ((filename)[2] == 'i' \
-				&& (filename)[3] == 't') \
-					action;          \
-				break;                   \
-			case 'v':                        \
-				if ((filename)[2] == 's' \
-				&& (filename)[3] == 'c'  \
-				&& (filename)[4] == 'o'  \
-				&& (filename)[5] == 'd'  \
-				&& (filename)[6] == 'e') \
-					action;          \
-				break;                   \
-			}                                \
+#define IF_EXCLUDED_DIR_DO(filename, action)                 \
+	do {                                                 \
+		if ((filename)[0] == '.')                    \
+			switch ((filename)[1]) {             \
+			case '.':                            \
+			case '\0':                           \
+				action;                      \
+				break;                       \
+			case 'g':                            \
+				if ((filename)[2] == 'i'     \
+				    && (filename)[3] == 't') \
+					action;              \
+				break;                       \
+			case 'v':                            \
+				if ((filename)[2] == 's'     \
+				    && (filename)[3] == 'c'  \
+				    && (filename)[4] == 'o'  \
+				    && (filename)[5] == 'd'  \
+				    && (filename)[6] == 'e') \
+					action;              \
+				break;                       \
+			}                                    \
 	} while (0)
 
 #define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                                         \
@@ -333,15 +337,13 @@ static void no_such_file(const char *entry)
 }
 
 #define NEEDLE_ARG argv[1]
-#define DIR_ARG argv[2]
+#define DIR_ARG	   argv[2]
 
 int main(int argc, char **argv)
 {
 	init_shm();
-	if (unlikely(!stdout))
-		return 1;
 	if (argc == 1
-	|| !argv[1][0]) {
+	    || !argv[1][0]) {
 		g_fuldirlen = 1;
 		find_cat(".", 1);
 		return 0;

@@ -2,14 +2,14 @@
 #define GLOBAL_TABLE_DEF_H
 
 enum { ACCEPT = 0,
-	REJECT,
-	NEWLINE,
-	UPPER,
-	LOWER,
-	WANTED,
-	WANTED_UPPER,
-	FILLED,
-	END_OF_FILE };
+       REJECT,
+       NEWLINE,
+       UPPER,
+       LOWER,
+       WANTED,
+       WANTED_UPPER,
+       FILLED,
+       END_OF_FILE };
 
 static unsigned char g_table[257] = {
 

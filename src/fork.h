@@ -36,7 +36,8 @@ static INLINE void init_shm()
 static INLINE void free_shm()
 {
 	/* sem_destroy(&g_alive_mutex); */
-	while (wait(NULL) != -1);
+	while (wait(NULL) != -1)
+		;
 	shmdt(&g_child_alive);
 }
 
@@ -57,7 +58,7 @@ static INLINE void free_shm()
 			switch (g_pid) {                \
 			case 0:                         \
 				++*g_child_alive;       \
-				dup(STDOUT_FILENO);     \
+				dup(1);                 \
 				DO;                     \
 				--*g_child_alive;       \
 				_exit(0);               \

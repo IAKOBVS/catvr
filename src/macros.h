@@ -91,8 +91,8 @@
 #	endif /* FLATTEN */
 #elif defined(_MSC_VER)
 #	define INLINE __forceinline inline
-#	define PURE __declspec(noalias)
-#	define CONST __declspec(restrict)
+#	define PURE   __declspec(noalias)
+#	define CONST  __declspec(restrict)
 #	define FLATTEN
 #else
 #	define INLINE inline
@@ -102,10 +102,10 @@
 #endif /* __GNUC__ || __clang__ || _MSC_VER */
 
 #if (defined(__GNUC__) && (__GNUC__ >= 3)) || (defined(__clang__) && __has_builtin(__builtin_expect))
-#	define likely(x) __builtin_expect(!!(x), 1)
+#	define likely(x)   __builtin_expect(!!(x), 1)
 #	define unlikely(x) __builtin_expect(!!(x), 0)
 #else
-#	define likely(x) (x)
+#	define likely(x)   (x)
 #	define unlikely(x) (x)
 #endif /* __has_builtin(__builtin_expect) */
 
@@ -247,7 +247,7 @@ case 'X':          \
 case 'Y':          \
 case 'Z':
 
-#define CASE_ALPHA CASE_LOWER CASE_UPPER
+#define CASE_ALPHA    CASE_LOWER CASE_UPPER
 #define CASE_ALPHANUM CASE_DIGIT CASE_ALPHA
 
 #define CASE_PRINTABLE \

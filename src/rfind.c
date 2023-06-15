@@ -15,10 +15,14 @@
 #undef USE_ANSI_COLORS
 #define USE_ANSI_COLORS 0
 
-#include "fork.h"
+/* #include "fork.h" */
 #include "g_memmem.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
+
+#define FORK_AND_WAIT(x) (x)
+#define init_shm()
+#define free_shm()
 
 static char g_ln[MAX_LINE_LEN + 1];
 static size_t g_lnlen;
