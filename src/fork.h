@@ -15,7 +15,6 @@
 
 static pid_t g_pid = 1;
 static int *g_child_alive;
-/* FILE *stdout_fp; */
 /* static sem_t g_alive_mutex; */
 
 static INLINE void init_shm()
@@ -53,15 +52,13 @@ static INLINE void free_shm()
 			wait(NULL);                          \
 	} while (0)
 
-#define stdout_fp stdout
-
 #define FORK_AND_WAIT(DO)                               \
 	do {                                            \
 		if (unlikely(g_pid == 0)) {             \
 			DO;                             \
 		} else {                                \
 			IF_FORK_MAX_WAIT_CHILD;         \
-			fflush(stdout_fp);              \
+			fflush(stdout);                 \
 			g_pid = fork();                 \
 			switch (g_pid) {                \
 			case 0:                         \
