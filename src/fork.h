@@ -36,8 +36,7 @@ static INLINE void init_shm()
 static INLINE void free_shm()
 {
 	/* sem_destroy(&g_alive_mutex); */
-	while (wait(NULL) != -1)
-		;
+	while (wait(NULL) != -1);
 	shmdt(&g_child_alive);
 }
 
