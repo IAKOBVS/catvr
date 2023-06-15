@@ -12,11 +12,11 @@
 #include <unistd.h>
 
 #include "config.h"
-/* #include "fork.h" */
 #include "g_memmem.h"
 #include "globals.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
+/* #include "fork.h" */
 
 #define FORK_AND_WAIT(x) (x)
 #define init_shm()

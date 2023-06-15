@@ -15,10 +15,10 @@
 #undef USE_ANSI_COLORS
 #define USE_ANSI_COLORS 0
 
-/* #include "fork.h" */
 #include "g_memmem.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
+/* #include "fork.h" */
 
 #define FORK_AND_WAIT(x) (x)
 #define init_shm()
