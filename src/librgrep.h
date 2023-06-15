@@ -23,15 +23,15 @@
 #endif /* USE_ANSI_COLORS */
 
 /* Does not nul terminate */
-#define itoa_uint_pos(s, n, base, digits)                                        \
-	do {                                                                     \
-		unsigned int n_ = n;                                             \
-		char *const end = (s) + UINT_LEN - 1;                            \
-		(s) = end;                                                       \
-		do                                                               \
-			*(s)-- = (n_) % (base) + '0';                            \
-		while ((n_) /= 10);                                              \
-		digits = end - (s)++;                                            \
+#define itoa_uint_pos(s, n, base, digits)             \
+	do {                                          \
+		unsigned int n_ = n;                  \
+		char *const end = (s) + UINT_LEN - 1; \
+		(s) = end;                            \
+		do                                    \
+			*(s)-- = (n_) % (base) + '0'; \
+		while ((n_) /= 10);                   \
+		digits = end - (s)++;                 \
 	} while (0)
 
 static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)

@@ -2,11 +2,12 @@
 #define FORK_DEF_H
 
 #include <sys/shm.h>
+#include <sys/wait.h>
 #include <unistd.h>
 /* #include <semaphore.h> */
 
-#include "librgrep.h"
 #include "config.h"
+#include "librgrep.h"
 
 #define g_child_max MAX_FORKS
 
@@ -33,6 +34,8 @@ static INLINE void init_shm()
 static INLINE void free_shm()
 {
 	/* sem_destroy(&g_alive_mutex); */
+	while (wait(NULL) != -1)
+		;
 	shmdt(&g_child_alive);
 }
 
@@ -42,26 +45,26 @@ static INLINE void free_shm()
 			wait(NULL);                          \
 	} while (0)
 
-#define FORK_AND_WAIT(DO)                                 \
-	do {                                              \
-		if (unlikely(g_pid == 0)) {               \
-			DO;                               \
-		} else {                                  \
-			IF_FORK_MAX_WAIT_CHILD;           \
-			fflush(stdout);                   \
-			g_pid = fork();                   \
-			switch (g_pid) {                  \
-			case 0:                           \
-				++*g_child_alive;         \
-				DO;                       \
-				--*g_child_alive;         \
-				_exit(0);                 \
-				break;                    \
-			default:                          \
-				IF_FORK_MAX_WAIT_CHILD;   \
-			case -1:;                         \
-			}                                 \
-		}                                         \
+#define FORK_AND_WAIT(DO)                               \
+	do {                                            \
+		if (unlikely(g_pid == 0)) {             \
+			DO;                             \
+		} else {                                \
+			IF_FORK_MAX_WAIT_CHILD;         \
+			fflush(stdout);                 \
+			g_pid = fork();                 \
+			switch (g_pid) {                \
+			case 0:                         \
+				++*g_child_alive;       \
+				DO;                     \
+				--*g_child_alive;       \
+				_exit(0);               \
+				break;                  \
+			default:                        \
+				IF_FORK_MAX_WAIT_CHILD; \
+			case -1:;                       \
+			}                               \
+		}                                       \
 	} while (0)
 
 #endif /* FORK_DEF_H */

@@ -18,9 +18,6 @@
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
-/* #define flockfile(fp) */
-/* #define funlockfile(fp) */
-
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
 	FILE *fp = fopen(filename, "r");
@@ -215,8 +212,8 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		case '\t':
 			break;
 		case '\n':
-			if (unlikely(g_lnp - g_ln == 1))
-				break;
+			if (unlikely(g_lnp - g_ln == 0))
+				goto CONT;
 #define CAT_PRINT_LN                                              \
 	do {                                                      \
 		g_NLbufp = g_NLbuf;                               \
@@ -235,7 +232,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 			g_lnp = g_ln;
 			goto CONT;
 		case EOF:
-			if (unlikely(g_lnp - g_ln == 1))
+			if (unlikely(g_lnp - g_ln == 0))
 				break;
 			*g_lnp = '\n';
 			CAT_PRINT_LN;

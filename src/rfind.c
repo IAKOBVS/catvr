@@ -10,23 +10,19 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-
 #include "config.h"
+
 #undef USE_ANSI_COLORS
 #define USE_ANSI_COLORS 0
+
 #include "fork.h"
 #include "g_memmem.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
 
-#define flockfile(fp)
-#define funlockfile(fp)
-
 static char g_ln[MAX_LINE_LEN + 1];
 static size_t g_lnlen;
 static char *g_found;
-
-/* #define g_memmem(h, hlen, n, nlen) memmem(h, hlen, n, nlen) */
 
 /* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DO(filename, action)         \
@@ -72,9 +68,9 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 
 #ifdef _DIRENT_HAVE_D_TYPE
 	while ((ep = readdir(dp))) {
-#if DEBUG
+#	if DEBUG
 		printf("d->name: %s\n", ep->d_name);
-#endif /* DEBUG */
+#	endif /* DEBUG */
 		switch (ep->d_type) {
 		case DT_REG:
 			DO_REG;
@@ -84,12 +80,12 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 			break;
 		}
 #else
-		if (unlikely(stat(dir, &g_st)))
-			continue;
-		if (S_ISREG(g_st.st_mode))
-			DO_REG;
-		else if (S_ISDIR(g_st.st_mode))
-			DO_DIR;
+	if (unlikely(stat(dir, &g_st)))
+		continue;
+	if (S_ISREG(g_st.st_mode))
+		DO_REG;
+	else if (S_ISDIR(g_st.st_mode))
+		DO_DIR;
 #endif /* _DIRENT_HAVE_D_TYPE */
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
