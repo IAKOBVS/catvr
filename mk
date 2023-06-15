@@ -21,7 +21,7 @@ for file in $(echo *.c); do
 		grep -q -F 'pthread.h' "$file" && set -- $@ -pthread
 		$compiler $@ "$file" -o "$bin" &&
 		echo "$file successfuly compiled!" &&
-		cp "$bin" "$scripts_dir/${bin##*/}" &&
+		cp -rf "$bin" "$scripts_dir/${bin##*/}" &&
 		echo "$bin successfuly copied to $scripts_dir!"
 	fi
 	} &

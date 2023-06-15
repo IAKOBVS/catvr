@@ -58,27 +58,27 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 			break;
 		case NEWLINE:
 			if (g_first_match) {
-#define PRINT_LN                                                                                                           \
-	do {                                                                                                               \
-			g_lnlen = g_lnp - g_ln;                                                                            \
-			if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, needle, needlelen))) { \
-				g_found = g_ln + (g_found - g_lnlower);                                                    \
-				g_NLbufp = g_NLbuf;                                                                        \
-				itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                          \
-				flockfile(stdout);                                                                         \
-				PRINT_LITERAL(ANSI_RED);                                                                   \
-				fwrite(filename, 1, flen, stdout);                                                         \
-				PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                                  \
-				fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                                \
-				PRINT_LITERAL(ANSI_RESET ":");                                                             \
-				fwrite(g_ln, 1, g_found - g_ln, stdout);                                                   \
-				PRINT_LITERAL(ANSI_RED);                                                                   \
-				fwrite(g_found, 1, needlelen, stdout);                                                     \
-				PRINT_LITERAL(ANSI_RESET);                                                                 \
-				fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
-				putchar('\n');                                                                             \
-				funlockfile(stdout);                                                                       \
-			}                                                                                                  \
+#define PRINT_LN                                                                                                   \
+	do {                                                                                                       \
+		g_lnlen = g_lnp - g_ln;                                                                            \
+		if ((g_found = g_memmem(g_lnlower + g_first_match, g_lnlen - g_first_match, needle, needlelen))) { \
+			g_found = g_ln + (g_found - g_lnlower);                                                    \
+			g_NLbufp = g_NLbuf;                                                                        \
+			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits);                                          \
+			flockfile(stdout);                                                                         \
+			PRINT_LITERAL(ANSI_RED);                                                                   \
+			fwrite(filename, 1, flen, stdout);                                                         \
+			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);                                                  \
+			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);                                                \
+			PRINT_LITERAL(ANSI_RESET ":");                                                             \
+			fwrite(g_ln, 1, g_found - g_ln, stdout);                                                   \
+			PRINT_LITERAL(ANSI_RED);                                                                   \
+			fwrite(g_found, 1, needlelen, stdout);                                                     \
+			PRINT_LITERAL(ANSI_RESET);                                                                 \
+			fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
+			putchar('\n');                                                                             \
+			funlockfile(stdout);                                                                       \
+		}                                                                                                  \
 	} while (0)
 				PRINT_LN;
 				g_first_match = 0;
@@ -161,23 +161,23 @@ OUT:
 #ifdef _DIRENT_HAVE_D_TYPE
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		switch (ep->d_type) {                               \
-		case DT_REG:                                        \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
-			break;                                      \
-		case DT_DIR:                                        \
-			FIND_FGREP_DO_DIR(FUNC_SELF);               \
+		switch (ep->d_type) {                                \
+		case DT_REG:                                         \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
+			break;                                       \
+		case DT_DIR:                                         \
+			FIND_FGREP_DO_DIR(FUNC_SELF);                \
 		}
 
 #else
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		if (unlikely(stat(dir, &g_st)))                     \
-			continue;                                   \
-		if (S_ISREG(g_st.st_mode))                          \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
-		else if (S_ISDIR(g_st.st_mode))                     \
-			FIND_FGREP_DO_DIR(FUNC_SELF);               \
+		if (unlikely(stat(dir, &g_st)))                      \
+			continue;                                    \
+		if (S_ISREG(g_st.st_mode))                           \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
+		else if (S_ISDIR(g_st.st_mode))                      \
+			FIND_FGREP_DO_DIR(FUNC_SELF);
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
@@ -217,18 +217,18 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		case '\n':
 			if (unlikely(g_lnp - g_ln == 1))
 				break;
-#define CAT_PRINT_LN                                                      \
-	do {                                                              \
-			g_NLbufp = g_NLbuf;                               \
-			itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
-			flockfile(stdout);                                \
-			PRINT_LITERAL(ANSI_RED);                          \
-			fwrite(filename, 1, flen, stdout);                \
-			PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
-			fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
-			PRINT_LITERAL(ANSI_RESET ":");                    \
-			fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-			funlockfile(stdout);                              \
+#define CAT_PRINT_LN                                              \
+	do {                                                      \
+		g_NLbufp = g_NLbuf;                               \
+		itoa_uint_pos(g_NLbufp, g_NL, 10, g_NLbufdigits); \
+		flockfile(stdout);                                \
+		PRINT_LITERAL(ANSI_RED);                          \
+		fwrite(filename, 1, flen, stdout);                \
+		PRINT_LITERAL(ANSI_RESET ":" ANSI_GREEN);         \
+		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
+		PRINT_LITERAL(ANSI_RESET ":");                    \
+		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
+		funlockfile(stdout);                              \
 	} while (0)
 			CAT_PRINT_LN;
 			++g_NL;
@@ -293,7 +293,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
-CONT:;
+	CONT:;
 	}
 	closedir(dp);
 }
@@ -338,6 +338,7 @@ static void no_such_file(const char *entry)
 
 int main(int argc, char **argv)
 {
+	init_shm();
 	if (argc == 1
 	|| !argv[1][0]) {
 		g_fuldirlen = 1;
@@ -378,5 +379,6 @@ int main(int argc, char **argv)
 		find_fgrep(needlebuf, needlebuflen, ".", g_fuldirlen);
 		break;
 	}
+	free_shm();
 	return 0;
 }

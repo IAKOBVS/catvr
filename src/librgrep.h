@@ -25,7 +25,6 @@
 /* Does not nul terminate */
 #define itoa_uint_pos(s, n, base, digits)                                        \
 	do {                                                                     \
-		STATIC_ASSERT(base > 0, "Using negative base in itoa_uint_pos"); \
 		unsigned int n_ = n;                                             \
 		char *const end = (s) + UINT_LEN - 1;                            \
 		(s) = end;                                                       \

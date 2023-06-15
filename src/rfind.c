@@ -10,7 +10,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+
 #include "config.h"
+#undef USE_ANSI_COLORS
+#define USE_ANSI_COLORS 0
 #include "fork.h"
 #include "g_memmem.h"
 #include "librgrep.h"
@@ -22,8 +25,6 @@
 static char g_ln[MAX_LINE_LEN + 1];
 static size_t g_lnlen;
 static char *g_found;
-static pid_t pid = 1;
-static unsigned int g_child_alive = 0;
 
 /* #define g_memmem(h, hlen, n, nlen) memmem(h, hlen, n, nlen) */
 
@@ -63,10 +64,10 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		}                                                                                 \
 	} while (0)
 
-#define DO_DIR                                                                                 \
-	do {                                                                                   \
-		IF_EXCLUDED_DO(ep->d_name, goto CONT);                                         \
-		find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen); \
+#define DO_DIR                                                                                                \
+	do {                                                                                                  \
+		IF_EXCLUDED_DO(ep->d_name, goto CONT);                                                        \
+		FORK_AND_WAIT(find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen)); \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -119,6 +120,7 @@ static size_t init_ptn(char *dst, const char *src)
 
 int main(int argc, char **argv)
 {
+	init_shm();
 	char ptnbuf[MAX_NEEDLE_LEN + 1];
 	char *ptn;
 	char *dir;
@@ -149,5 +151,6 @@ int main(int argc, char **argv)
 	}
 	init_memmem(ptn, ptnlen);
 	find(dir, dlen, ptn, ptnlen);
+	free_shm();
 	return 0;
 }

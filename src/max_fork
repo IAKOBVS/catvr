@@ -1,6 +1,7 @@
 #!/bin/sh
 if n=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || getconf _NPROCESESORS_ONLN 2>/dev/null); then
-	echo "$(sed "s/^[[:space:]]*#define MAX_FORKS[[:space:]]*$/#define MAX_FORKS $n/" config.h)" > config.h
+	n=$((n * 4))
+	echo "$(sed "s/#define MAX_FORKS[[:space:]]*.*[[:space:]]*$/#define MAX_FORKS $n/" config.h)" > config.h
 else
 	echo "Can't get number of CPU cores!"
 fi
