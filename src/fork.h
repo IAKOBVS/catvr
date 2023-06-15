@@ -1,11 +1,11 @@
 #ifndef FORK_DEF_H
 #define FORK_DEF_H
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
 /* #include <semaphore.h> */
 
 #include "config.h"
@@ -41,7 +41,8 @@ static INLINE void init_shm()
 static INLINE void free_shm()
 {
 	/* sem_destroy(&g_alive_mutex); */
-	while (wait(NULL) != -1);
+	while (wait(NULL) != -1)
+		;
 	shmdt(&g_child_alive);
 	/* fclose(stdout_fp); */
 }
