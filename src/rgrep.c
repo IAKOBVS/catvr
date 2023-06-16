@@ -8,7 +8,6 @@
 
 #include <dirent.h>
 #include <stdio.h>
-/* #include <sys/wait.h> */
 /* #include <unistd.h> */
 
 #include "config.h"
@@ -229,7 +228,6 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		fwrite(g_NLbufp, 1, g_NLbufdigits, stdout);       \
 		PRINT_LITERAL(ANSI_RESET ":");                    \
 		fwrite(g_ln, 1, g_lnp - g_ln + 1, stdout);        \
-		fflush_unlocked(stdout);                          \
 		funlockfile(stdout);                              \
 	} while (0)
 			CAT_PRINT_LN;
