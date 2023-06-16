@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <stdlib.h>
 
 #include "config.h"
 #include "global_table.h"
@@ -21,16 +22,23 @@
 /* #define flockfile(fp) */
 /* #define funlockfile(fp) */
 
+#define DEBUG 0
+
 #undef MAX_LINE_LEN
 #define MAX_LINE_LEN 256
 
-pthread_t t[MAX_FORKS];
+static pthread_t thrs[MAX_FORKS];
+static pthread_mutex_t thrs_mut = PTHREAD_MUTEX_INITIALIZER;
+
+static pthread_t thr_main;
+unsigned int thr_alive;
+static pthread_mutex_t thr_alive_mut = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct fgrep_args {
 	const char *needle;
-	const char *filename;
-	const size_t nlen;
-	const size_t flen;
+	char *filename;
+	size_t nlen;
+	size_t flen;
 } fgrep_args;
 
 static INLINE void *fgrep(void *args)
@@ -95,8 +103,8 @@ static INLINE void *fgrep(void *args)
 				fwrite(g_found, 1, arg->nlen, stdout);                                                    \
 				PRINT_LITERAL(ANSI_RESET);                                                                \
 				fwrite(g_found + arg->nlen, 1, lnlen - (g_found - ln + arg->nlen), stdout);               \
-				fflush(stdout);                                                                           \
 				putchar('\n');                                                                            \
+				fflush_unlocked(stdout);                                                                  \
 				funlockfile(stdout);                                                                      \
 			}                                                                                                 \
 	} while (0)
@@ -164,37 +172,61 @@ OUT:
 			}                                \
 	} while (0)
 
-#define FIND_FGREP_DO_REG(FUNC_REG)                                                                                                             \
-	do {                                                                                                                                    \
-		IF_EXCLUDED_REG_DO(ep->d_name, goto CONT);                                                                                      \
-		fgrep_args a = { arg->needle, ep->d_name, arg->nlen, appendp(fulpath, arg->dir, arg->dlen, ep->d_name) - fulpath - arg->dlen }; \
-		FUNC_REG(&a);                                                                                                                   \
-	} while (0)
-
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                             \
+#define DO_REG(FUNC_REG)                                                                                                         \
 	do {                                                                                                                     \
-		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                                       \
-		find_args a = { arg->needle, arg->nlen, fulpath, appendp(fulpath, arg->dir, arg->dlen, ep->d_name) - fulpath }; \
-		pthread_mutex_lock(&alive_mtx);                                                                                  \
-		if (thr_alive != MAX_FORKS) {                                                                                    \
-			++thr_alive;                                                                                             \
-			pthread_mutex_unlock(&alive_mtx);                                                                        \
-			if (unlikely(pthread_create(&t, NULL, &FUNC_SELF, &a)))                                                  \
-				fputs("Can't create thread", stderr);                                                            \
-		} else {                                                                                                         \
-			pthread_mutex_unlock(&alive_mtx);                                                                        \
-			FUNC_SELF(&a);                                                                                           \
-		}                                                                                                                \
+		IF_EXCLUDED_REG_DO(ep->d_name, goto CONT);                                                                       \
+		fgrep_args a = { arg->needle, fulpath, arg->nlen, appendp(fulpath, arg->dir, arg->dlen, ep->d_name) - fulpath }; \
+		FUNC_REG(&a);                                                                                                    \
 	} while (0)
 
-unsigned int thr_alive = 0;
-pthread_mutex_t alive_mtx = PTHREAD_MUTEX_INITIALIZER;
+static void *find_fgrep_thr(void *args);
+
+#define DO_DIR(FUNC_SELF)                                                                                                               \
+	do {                                                                                                                            \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                                              \
+		if (likely(!pthread_equal(pthread_self(), thr_main))) {                                                                 \
+		DO:                                                                                                                     \
+			find_args a = { arg->needle, arg->nlen, fulpath, appendp(fulpath, arg->dir, arg->dlen, ep->d_name) - fulpath }; \
+			FUNC_SELF(&a);                                                                                                  \
+			break;                                                                                                          \
+		}                                                                                                                       \
+		pthread_mutex_lock(&thr_alive_mut);                                                                                     \
+		if (thr_alive == MAX_FORKS) {                                                                                           \
+			pthread_mutex_unlock(&thr_alive_mut);                                                                           \
+			goto DO;                                                                                                        \
+		}                                                                                                                       \
+		++thr_alive;                                                                                                            \
+		pthread_mutex_unlock(&thr_alive_mut);                                                                                   \
+		find_args *a = malloc(sizeof(*a));                                                                                      \
+		if (unlikely(!a)) {                                                                                                     \
+			fputs("malloc failed\n", stderr);                                                                               \
+			exit(1);                                                                                                        \
+		}                                                                                                                       \
+		char *fulpath = malloc(MAX_PATH_LEN);                                                                                   \
+		if (unlikely(!fulpath)) {                                                                                               \
+			fputs("malloc failed\n", stderr);                                                                               \
+			exit(1);                                                                                                        \
+		}                                                                                                                       \
+		a->needle = arg->needle;                                                                                                \
+		a->nlen = arg->nlen;                                                                                                    \
+		a->dir = fulpath;                                                                                                       \
+		a->dlen = appendp(fulpath, arg->dir, arg->dlen, ep->d_name) - fulpath;                                                  \
+		int i = 0;                                                                                                              \
+		pthread_mutex_lock(&thrs_mut);                                                                                          \
+		while (i < MAX_FORKS && thrs[i])                                                                                        \
+			++i;                                                                                                            \
+		if (unlikely(pthread_create(&thrs[i], NULL, &find_fgrep_thr, a))) {                                                     \
+			fputs("Can't create thread", stderr);                                                                           \
+			exit(1);                                                                                                        \
+		}                                                                                                                       \
+		pthread_mutex_unlock(&thrs_mut);                                                                                        \
+	} while (0)
 
 typedef struct find_args {
 	const char *needle;
-	const size_t nlen;
+	size_t nlen;
 	const char *dir;
-	const size_t dlen;
+	size_t dlen;
 } find_args;
 
 static void *find_fgrep(void *args)
@@ -212,32 +244,29 @@ static void *find_fgrep(void *args)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			FIND_FGREP_DO_REG(fgrep);
+			DO_REG(fgrep);
 #if DEBUG
-			puts(ep->d_name);
+			printf("reg: %s\n", ep->d_name);
 #endif
 			break;
 		case DT_DIR:
-			FIND_FGREP_DO_DIR(find_fgrep);
+			DO_DIR(find_fgrep);
 #if DEBUG
-			puts(ep->d_name);
+			printf("dir: %s\n", ep->d_name);
 #endif
 		}
 #else
 		if (unlikely(stat(dir, &st)))
 			continue;
 		if (S_ISREG(st.st_mode))
-			FIND_FGREP_DO_REG(fgrep);
+			DO_REG(fgrep);
 		else if (S_ISDIR(st.st_mode))
-			FIND_FGREP_DO_DIR(find_fgrep);
+			DO_DIR(find_fgrep);
 #endif /* _DIRENT_HAVE_D_TYPE */
 	CONT:;
 	}
 	closedir(dp);
-	pthread_mutex_lock(&alive_mtx);
-	--thr_alive;
-	pthread_mutex_unlock(&alive_mtx);
-	return args;
+	return NULL;
 }
 
 static size_t init_needle(char *dst, const char *src)
@@ -257,6 +286,21 @@ static size_t init_needle(char *dst, const char *src)
 		break;
 	}
 	return dst - d;
+}
+
+static void *find_fgrep_thr(void *args)
+{
+	find_fgrep(args);
+	pthread_mutex_lock(&thr_alive_mut);
+	--thr_alive;
+	pthread_mutex_unlock(&thr_alive_mut);
+	pthread_mutex_lock(&thrs_mut);
+	for (int i = 0; i < MAX_FORKS; ++i)
+		if (thrs[i] == pthread_self())
+			thrs[i] = 0;
+	pthread_mutex_unlock(&thrs_mut);
+	pthread_detach(pthread_self());
+	return NULL;
 }
 
 static void init_fgrep(const char needle)
@@ -302,13 +346,14 @@ int main(int argc, char **argv)
 		}
 		if (unlikely(S_ISREG(st.st_mode))) {
 			fgrep_args args = { needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG) };
-			fgrep(&args);
-			/* pthread_create(&t, NULL, &fgrep, &args); */
+			++thr_alive;
+			pthread_create(&thr_main, NULL, &fgrep, &args);
+			/* fgrep(&args); */
 			/* fgrep(needlebuf, DIR_ARG, needlebuflen, strlen(DIR_ARG)); */
 		} else if (S_ISDIR(st.st_mode)) {
 			find_args args = { needlebuf, needlebuflen, DIR_ARG, strlen(DIR_ARG) };
-			find_fgrep(&args);
-			/* pthread_create(&t, NULL, &find_fgrep, &args); */
+			++thr_alive;
+			pthread_create(&thr_main, NULL, &find_fgrep, &args);
 			/* find_fgrep(&args); */
 		} else {
 			no_such_file(DIR_ARG);
@@ -318,12 +363,25 @@ int main(int argc, char **argv)
 	case '\0':
 	GET_CWD: {
 		find_args args = { needlebuf, needlebuflen, ".", 1 };
-		find_fgrep(&args);
-		/* pthread_create(&t, NULL, &find_fgrep, &args); */
+		++thr_alive;
+		pthread_create(&thr_main, NULL, &find_fgrep, &args);
+		/* find_fgrep(&args); */
 		break;
 		}
 	}
-	for (int i = 0; i < MAX_FORKS; ++i)
-		pthread_join(t[i], NULL);
+	pthread_join(thr_main, NULL);
+	pthread_mutex_lock(&thr_alive_mut);
+	--thr_alive;
+	pthread_mutex_unlock(&thr_alive_mut);
+	for (;;) {
+		pthread_mutex_lock(&thr_alive_mut);
+		if (thr_alive) {
+			pthread_mutex_unlock(&thr_alive_mut);
+			sleep(1);
+			continue;
+		}
+		pthread_mutex_unlock(&thr_alive_mut);
+	}
+	pthread_mutex_destroy(&thr_alive_mut);
 	return 0;
 }

@@ -8,8 +8,8 @@
 
 #include <dirent.h>
 #include <stdio.h>
-#include <sys/wait.h>
-#include <unistd.h>
+/* #include <sys/wait.h> */
+/* #include <unistd.h> */
 
 #include "config.h"
 #include "g_memmem.h"
@@ -78,7 +78,6 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 			PRINT_LITERAL(ANSI_RESET);                                                                 \
 			fwrite(g_found + needlelen, 1, g_lnlen - (g_found - g_ln + needlelen), stdout);            \
 			putchar('\n');                                                                             \
-			fflush_unlocked(stdout);                                                                   \
 			funlockfile(stdout);                                                                       \
 		}                                                                                                  \
 	} while (0)
