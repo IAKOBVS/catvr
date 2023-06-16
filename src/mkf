@@ -1,5 +1,3 @@
 #!/bin/sh
-rm ../bin/rfind &
-rm ../bin/rgrep &
-wait
+rm -r ../bin
 ./mk
