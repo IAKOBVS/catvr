@@ -14,7 +14,7 @@
 #include <sys/stat.h>
 
 #include "config.h"
-#include "g_memmem.h"
+/* #include "g_memmem.h" */
 #include "global_table_256.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
@@ -29,144 +29,138 @@
 
 struct stat g_st;
 
-#define itoa_uint_pos(s, n, base, digits)             \
-	do {                                          \
-		unsigned int n_ = n;                  \
-		char *const end = (s) + UINT_LEN - 1; \
-		(s) = end;                            \
-		do                                    \
-			*(s)-- = (n_) % (base) + '0'; \
-		while ((n_) /= 10);                   \
-		digits = end - (s)++;                 \
-	} while (0)
+#define MAX_ITOA_DIGITS 19
 
-#define GET_LINENUM(NL, start, end)                                   \
-	do {                                                          \
-		NL = 1;                                               \
-		for (const unsigned char *tmp = end; tmp != start;) { \
-			switch (g_table[*tmp--]) {                    \
-			case NEWLINE:                                 \
-				++NL;                                 \
-				break;                                \
-			case REJECT:                                  \
-				goto END;                             \
-			}                                             \
-		}                                                     \
+#undef itoa_uint_pos
+#define itoa_uint_pos(s, n, base, digits)                    \
+	do {                                                 \
+		unsigned int n_ = n;                         \
+		char *const end = (s) + MAX_ITOA_DIGITS - 1; \
+		(s) = end;                                   \
+		do                                           \
+			*(s)-- = (n_) % (base) + '0';        \
+		while ((n_) /= 10);                          \
+		digits = end - (s)++;                        \
 	} while (0)
 
 #define PRINT_LITERAL(s) fwrite((s), 1, sizeof(s) - 1, stdout)
 
+#define COUNT_NL(NL)                               \
+	do {                                       \
+		const unsigned char *tmp = p;      \
+		while (tmp != plinestart) {        \
+			switch (g_table[*tmp--]) { \
+			case REJECT:               \
+				goto END;          \
+			case NEWLINE:              \
+				++NL;              \
+			default:;                  \
+			}                          \
+		}                                  \
+		plinestart = p;                    \
+	} while (0)
+
 #if !USE_ANSI_COLORS
 
-#	define FGREP_PRINT                                                         \
-		do {                                                                \
-			for (const unsigned char *tmp = plinestart;; ++tmp, ++NL) { \
-				tmp = memchr(tmp, '\n', pp - tmp);                  \
-				if (unlikely(!tmp))                                 \
-					break;                                      \
-				plinestart = tmp;                                   \
-			}                                                           \
-                                                                                    \
-			numbufp = numbuf;                                           \
-			itoa_uint_pos(numbufp, NL, 10, dgts);                       \
-                                                                                    \
-			fwrite(filename, 1, flen, stdout);                          \
-			putchar(':');                                               \
-                                                                                    \
-			fwrite(numbufp, 1, dgts, stdout);                           \
-			putchar(':');                                               \
-			fwrite(p, 1, ppp - p, stdout);                              \
+#	define FGREP_PRINT                                   \
+		do {                                          \
+			COUNT_NL(NL);                         \
+			numbufp = numbuf;                     \
+			itoa_uint_pos(numbufp, NL, 10, dgts); \
+                                                              \
+			fwrite(filename, 1, flen, stdout);    \
+			putchar(':');                         \
+                                                              \
+			fwrite(numbufp, 1, dgts, stdout);     \
+			putchar(':');                         \
+			fwrite(p, 1, ppp - p, stdout);        \
 		} while (0)
 
 #else
 
-#	define FGREP_PRINT                                                         \
-		do {                                                                \
-			for (const unsigned char *tmp = plinestart;; ++tmp, ++NL) { \
-				tmp = memchr(tmp, '\n', pp - tmp);                  \
-				if (unlikely(!tmp))                                 \
-					break;                                      \
-				plinestart = tmp;                                   \
-			}                                                           \
-			numbufp = numbuf;                                           \
-			itoa_uint_pos(numbufp, NL, 10, dgts);                       \
-			PRINT_LITERAL(ANSI_RED);                                    \
-			fwrite(filename, 1, flen, stdout);                          \
-			PRINT_LITERAL(ANSI_RESET ":");                              \
-			PRINT_LITERAL(ANSI_GREEN);                                  \
-			fwrite(numbufp, 1, dgts, stdout);                           \
-			PRINT_LITERAL(ANSI_RESET ":");                              \
-			fwrite(p, 1, pp - p, stdout);                               \
-			PRINT_LITERAL(ANSI_RED);                                    \
-			fwrite(pp, 1, needlelen, stdout);                           \
-			PRINT_LITERAL(ANSI_RESET);                                  \
-			fwrite(pp + needlelen, 1, ppp - (pp + needlelen), stdout);  \
+#	define FGREP_PRINT                                                        \
+		do {                                                               \
+			COUNT_NL(NL);                                              \
+			numbufp = numbuf;                                          \
+			itoa_uint_pos(numbufp, NL, 10, dgts);                      \
+			PRINT_LITERAL(ANSI_RED);                                   \
+			fwrite(filename, 1, flen, stdout);                         \
+			PRINT_LITERAL(ANSI_RESET ":");                             \
+			PRINT_LITERAL(ANSI_GREEN);                                 \
+			fwrite(numbufp, 1, dgts, stdout);                          \
+			PRINT_LITERAL(ANSI_RESET ":");                             \
+			fwrite(p, 1, pp - p, stdout);                              \
+			PRINT_LITERAL(ANSI_RED);                                   \
+			fwrite(pp, 1, needlelen, stdout);                          \
+			PRINT_LITERAL(ANSI_RESET);                                 \
+			fwrite(pp + needlelen, 1, ppp - (pp + needlelen), stdout); \
 		} while (0)
 
 #endif
 
-static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
-{
-	int fd = open(filename, O_RDONLY, S_IRUSR);
-	if (unlikely(fd < 0
-		     || fstat(fd, &g_st)
-		     || g_st.st_size >= MAX_FILE_SZ
-		     || !g_st.st_size))
-		return;
-	const unsigned int csz = g_st.st_size;
-	unsigned int sz = csz;
-	unsigned char *p = mmap(NULL, csz + 1, PROT_READ, MAP_PRIVATE, fd, 0);
-	unsigned char *const pstart = (unsigned char *)p;
-	unsigned int NL = 1;
-	unsigned int dgts;
-	char numbuf[UINT_LEN];
-	char *numbufp;
-	const unsigned char *plinestart = pstart;
-	const unsigned char *const pend = p + sz;
-	unsigned char *pp;
-	unsigned char *ppp;
-	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) {
-		p = pp;
-		for (;;) {
-			switch (g_table[*p]) {
-			case NEWLINE:
-				++p;
-				goto BREAK_FOR1;
-			case REJECT:
-				goto END;
-			}
-			if (unlikely(p == pstart))
-				break;
-			--p;
-		}
-BREAK_FOR1:
-		ppp = pp + needlelen;
-		for (;;) {
-			if (unlikely(ppp == pend)) {
-				FGREP_PRINT;
-				goto END;
-			}
-			switch (g_table[*ppp]) {
-			case NEWLINE:
-				++ppp;
-				goto BREAK_FOR2;
-			case REJECT:
-				goto END;
-			}
-			++ppp;
-		}
-BREAK_FOR2:;
-		FGREP_PRINT;
-		sz -= ppp - p;
-		p = ppp;
-	}
-END:;
-	if (unlikely(munmap(pstart, csz + 1))) {
-		fprintf(stderr, "Can't munmap %s\n", filename);
-		exit(1);
-	}
-	exit(1);
-}
+/* static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen) */
+/* { */
+/* 	int fd = open(filename, O_RDONLY, S_IRUSR); */
+/* 	if (unlikely(fd < 0)) */
+/* 		return; */
+/* 	if (unlikely(fstat(fd, &g_st))) */
+/* 		return; */
+/* 	if (unlikely(g_st.st_size >= MAX_FILE_SZ)) */
+/* 		return; */
+/* 	if (unlikely(!g_st.st_size)) */
+/* 		return; */
+/* 	unsigned char *p = mmap(NULL, g_st.st_size, PROT_READ, MAP_PRIVATE, fd, 0); */
+/* 	if (unlikely(p == MAP_FAILED)) */
+/* 		return; */
+/* 	unsigned int sz = g_st.st_size; */
+/* 	unsigned char *const pstart = p; */
+/* 	const unsigned char *plinestart = pstart; */
+/* 	const unsigned char *const pend = p + sz; */
+/* 	size_t NL = 1; */
+/* 	unsigned int dgts; */
+/* 	char numbuf[MAX_ITOA_DIGITS]; */
+/* 	char *numbufp; */
+/* 	unsigned char *pp; */
+/* 	unsigned char *ppp; */
+/* 	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) { */
+/* 		p = pp; */
+/* 		while (p != pstart) { */
+/* 			switch (g_table[*p]) { */
+/* 			case NEWLINE: */
+/* 				++p; */
+/* 				goto BREAK_FOR1; */
+/* 			case REJECT: */
+/* 				goto END; */
+/* 			} */
+/* 			--p; */
+/* 		} */
+/* BREAK_FOR1: */
+/* 		ppp = pp + needlelen; */
+/* 		for (;;) { */
+/* 			if (unlikely(ppp == pend)) { */
+/* 				FGREP_PRINT; */
+/* 				goto END; */
+/* 			} */
+/* 			switch (g_table[*ppp]) { */
+/* 			case NEWLINE: */
+/* 				++ppp; */
+/* 				goto BREAK_FOR2; */
+/* 			case REJECT: */
+/* 				goto END; */
+/* 			} */
+/* 			++ppp; */
+/* 		} */
+/* BREAK_FOR2:; */
+/* 		FGREP_PRINT; */
+/* 		sz -= ppp - p; */
+/* 		p = ppp; */
+/* 	} */
+/* END:; */
+/* 	if (unlikely(munmap(pstart, g_st.st_size))) { */
+/* 		fprintf(stderr, "Can't munmap %s\n", filename); */
+/* 		exit(1); */
+/* 	} */
+/* } */
 
 #define IF_EXCLUDED_REG_DO(filename, action)  \
 	do {                                  \
@@ -265,76 +259,82 @@ CONT:;                                                                          
 		return;                                                                               \
 	}
 
-DEF_FIND_T(find_fgrep, fgrep, 1)
+/* DEF_FIND_T(find_fgrep, fgrep, 1) */
 
 static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 {
 	int fd = open(filename, O_RDONLY, S_IRUSR);
-	if (unlikely(fd < 0)
-	    || unlikely(fstat(fd, &g_st))
-	    || unlikely(g_st.st_size >= MAX_FILE_SZ)
-	    || unlikely(!g_st.st_size))
+	if (unlikely(fd < 0))
 		return;
+	if (unlikely(fstat(fd, &g_st)))
+		return;
+	if (unlikely(g_st.st_size >= MAX_FILE_SZ))
+		return;
+	if (unlikely(!g_st.st_size))
+		return;
+	unsigned char *p = mmap(NULL, g_st.st_size + 1, PROT_READ, MAP_PRIVATE, fd, 0);
+	if (unlikely(p == MAP_FAILED))
+		return;
+	;
 	const unsigned int sz = g_st.st_size;
-	unsigned char *p = mmap(NULL, sz, PROT_READ, MAP_PRIVATE, fd, 0);
 	unsigned char *const pstart = p;
 	unsigned char *const pend = p + sz;
-	char numbuf[UINT_LEN];
+	char numbuf[MAX_ITOA_DIGITS];
 	char *numbufp;
 	unsigned int dgts;
-	if (!memchr(p, 0, sz)) {
-		for (unsigned int NL = 1;; ++NL) {
+	if (memchr(p, 0, sz / 2))
+		goto END;
+	for (unsigned int NL = 1;; ++NL) {
 #if !USE_ANSI_COLORS
-			fwrite(filename, 1, flen, stdout);
-			putchar(':');
+		fwrite(filename, 1, flen, stdout);
+		putchar(':');
 
-			numbufp = numbuf;
-			itoa_uint_pos(numbufp, NL, 10, dgts);
-			fwrite(numbufp, 1, dgts, stdout);
+		numbufp = numbuf;
+		itoa_uint_pos(numbufp, NL, 10, dgts);
+		fwrite(numbufp, 1, dgts, stdout);
 
-			putchar(':');
-			for (;;) {
-				switch (g_table[*p]) {
-				case NEWLINE:
-					++p;
-					putchar('\n');
-					goto BREAK_FOR;
-				case REJECT:;
-				}
-				if (unlikely(p == pend)) {
-					putchar('\n');
-					goto END;
-				}
-				putchar(*p++);
+		putchar(':');
+		for (;;) {
+			switch (g_table[*p]) {
+			case NEWLINE:
+				++p;
+				putchar('\n');
+				goto BREAK_FOR;
+			case REJECT:;
 			}
+			if (unlikely(p == pend)) {
+				putchar('\n');
+				goto END;
+			}
+			putchar(*p++);
+		}
 #else
-			PRINT_LITERAL(ANSI_RED);
-			fwrite(filename, 1, flen, stdout);
-			PRINT_LITERAL(ANSI_RESET ":");
-			PRINT_LITERAL(ANSI_GREEN);
+		PRINT_LITERAL(ANSI_RED);
+		fwrite(filename, 1, flen, stdout);
+		PRINT_LITERAL(ANSI_RESET ":");
+		PRINT_LITERAL(ANSI_GREEN);
 
-			numbufp = numbuf;
-			itoa_uint_pos(numbufp, NL, 10, dgts);
-			fwrite(numbufp, 1, dgts, stdout);
+		numbufp = numbuf;
+		itoa_uint_pos(numbufp, NL, 10, dgts);
+		fwrite(numbufp, 1, dgts, stdout);
 
-			PRINT_LITERAL(ANSI_RESET ":");
-			for (;;) {
-				switch (g_table[*p]) {
-				case NEWLINE:
-					++p;
-					putchar('\n');
-					goto BREAK_FOR;
-				case REJECT:;
-				}
-				if (unlikely(p == pend)) {
-					putchar('\n');
-					goto END;
-				}
-				putchar(*p++);
+		PRINT_LITERAL(ANSI_RESET ":");
+		for (;;) {
+			switch (g_table[*p]) {
+			case NEWLINE:
+				++p;
+				putchar('\n');
+				goto BREAK_FOR;
+			case REJECT:;
 			}
+			if (unlikely(p == pend)) {
+				putchar('\n');
+				goto END;
+			}
+			putchar(*p++);
+		}
 #endif
 BREAK_FOR:;
-		}
 	}
 END:
 	if (unlikely(munmap(pstart, sz))) {
@@ -392,56 +392,57 @@ CONT:;
 	closedir(dp);
 }
 
-static void stat_fail(const char *entry)
-{
-	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);
-}
+/* static void stat_fail(const char *entry) */
+/* { */
+/* 	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry); */
+/* } */
 
-static void no_such_file(const char *entry)
-{
-	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry);
-}
+/* static void no_such_file(const char *entry) */
+/* { */
+/* 	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry); */
+/* } */
 
 #define NEEDLE_ARG argv[1]
 #define DIR_ARG	   argv[2]
 
 #define NEEDLELEN strlen(NEEDLE_ARG)
 
-int main(int argc, char **argv)
+int main()
 {
-	init_shm();
-	if (argc == 1 || !argv[1][0]) {
-		find_cat(".", 1);
-		return 1;
-	}
-	const size_t needlelen = strlen(NEEDLE_ARG);
-	init_memmem(NEEDLE_ARG, needlelen);
-	if (argc == 2)
-		goto GET_CWD;
-	switch (DIR_ARG[0]) {
-	case '.':
-		if (unlikely(DIR_ARG[1] == '\0'))
-			goto GET_CWD;
-	/* FALLTHROUGH */
-	default:
-		if (unlikely(stat(DIR_ARG, &g_st))) {
-			stat_fail(DIR_ARG);
-			return 1;
-		}
-		if (unlikely(S_ISREG(g_st.st_mode))) {
-			fgrep(NEEDLE_ARG, DIR_ARG, needlelen, strlen(DIR_ARG));
-		} else if (S_ISDIR(g_st.st_mode)) {
-			find_fgrep(NEEDLE_ARG, needlelen, DIR_ARG, strlen(DIR_ARG));
-		} else {
-			no_such_file(DIR_ARG);
-			return 1;
-		}
-		break;
-	case '\0':
-GET_CWD:;
-		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
-		break;
-	}
-	free_shm();
+	find_cat(".", 1);
 	return 0;
+	/* init_shm(); */
+	/* if (argc == 1 || !argv[1][0]) { */
+	/* 	find_cat(".", 1); */
+	/* 	return 1; */
+	/* } */
+	/* const size_t needlelen = strlen(NEEDLE_ARG); */
+	/* init_memmem(NEEDLE_ARG, needlelen); */
+	/* if (argc == 2) */
+	/* 	goto GET_CWD; */
+	/* switch (DIR_ARG[0]) { */
+	/* case '.': */
+	/* 	if (unlikely(DIR_ARG[1] == '\0')) */
+	/* 		goto GET_CWD; */
+	/* /1* FALLTHROUGH *1/ */
+	/* default: */
+	/* 	if (unlikely(stat(DIR_ARG, &g_st))) { */
+	/* 		stat_fail(DIR_ARG); */
+	/* 		return 1; */
+	/* 	} */
+	/* 	if (unlikely(S_ISREG(g_st.st_mode))) { */
+	/* 		fgrep(NEEDLE_ARG, DIR_ARG, needlelen, strlen(DIR_ARG)); */
+	/* 	} else if (S_ISDIR(g_st.st_mode)) { */
+	/* 		find_fgrep(NEEDLE_ARG, needlelen, DIR_ARG, strlen(DIR_ARG)); */
+	/* 	} else { */
+	/* 		no_such_file(DIR_ARG); */
+	/* 		return 1; */
+	/* 	} */
+	/* 	break; */
+	/* case '\0': */
+/* GET_CWD:; */
+	/* 	find_fgrep(NEEDLE_ARG, needlelen, ".", 1); */
+	/* 	break; */
+	/* } */
+	/* free_shm(); */
 }
