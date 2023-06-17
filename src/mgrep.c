@@ -430,6 +430,8 @@ static void no_such_file(const char *entry)
 #define NEEDLE_ARG argv[1]
 #define DIR_ARG	   argv[2]
 
+#include <pthread.h>
+
 int main(int argc, char **argv)
 {
 	init_shm();
