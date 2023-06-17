@@ -58,45 +58,50 @@ struct stat g_st;
 
 #if !USE_ANSI_COLORS
 
-#	define FGREP_PRINT                                                                                    \
-		do {                                                                                          \
-			NL = 1;                                                                               \
-			for (const unsigned char *p_ = pstart; (p_ = memchr(p_, '\n', pp - p_)); ++p_, ++NL); \
-			numbufp = numbuf;                                                                     \
-			itoa_uint_pos(numbufp, NL, 10, dgts);                                                 \
-			fwrite(filename, 1, flen, stdout);                                                    \
-			putchar(':');                                                                         \
-			fwrite(numbufp, 1, dgts, stdout);                                                     \
-			putchar(':');                                                                         \
-			fwrite(p, 1, ppp - p, stdout);                                                        \
+#	define FGREP_PRINT                                                                                  \
+		do {                                                                                         \
+			NL = 1;                                                                              \
+			for (const unsigned char *p_ = pstart; (p_ = memchr(p_, '\n', pp - p_)); ++p_, ++NL) \
+				;                                                                            \
+			numbufp = numbuf;                                                                    \
+			itoa_uint_pos(numbufp, NL, 10, dgts);                                                \
+			fwrite(filename, 1, flen, stdout);                                                   \
+			putchar(':');                                                                        \
+			fwrite(numbufp, 1, dgts, stdout);                                                    \
+			putchar(':');                                                                        \
+			fwrite(p, 1, ppp - p, stdout);                                                       \
 		} while (0)
 
 #else
 
-#	define FGREP_PRINT                                                                                    \
-		do {                                                                                          \
-			NL = 1;                                                                               \
-			for (const unsigned char *p_ = pstart; (p_ = memchr(p_, '\n', pp - p_)); ++p_, ++NL); \
-			numbufp = numbuf;                                                                     \
-			itoa_uint_pos(numbufp, NL, 10, dgts);                                                 \
-			PRINT_LITERAL(ANSI_RED);                                                              \
-			fwrite(filename, 1, flen, stdout);                                                    \
-			PRINT_LITERAL(ANSI_RESET ":");                                                        \
-			PRINT_LITERAL(ANSI_GREEN);                                                            \
-			fwrite(numbufp, 1, dgts, stdout);                                                     \
-			PRINT_LITERAL(ANSI_RESET ":");                                                        \
-			fwrite(p, 1, pp - p, stdout);                                                         \
-			PRINT_LITERAL(ANSI_RED);                                                              \
-			fwrite(pp, 1, needlelen, stdout);                                                     \
-			PRINT_LITERAL(ANSI_RESET);                                                            \
-			fwrite(pp + needlelen, 1, ppp - (pp + needlelen), stdout);                            \
+#	define FGREP_PRINT                                                         \
+		do {                                                                \
+			for (const unsigned char *tmp = plinestart;; ++tmp, ++NL) { \
+				tmp = memchr(tmp, '\n', pp - tmp);                  \
+				if (unlikely(!tmp))                                 \
+					break;                                      \
+				plinestart = tmp;                                   \
+			}                                                           \
+			numbufp = numbuf;                                           \
+			itoa_uint_pos(numbufp, NL, 10, dgts);                       \
+			PRINT_LITERAL(ANSI_RED);                                    \
+			fwrite(filename, 1, flen, stdout);                          \
+			PRINT_LITERAL(ANSI_RESET ":");                              \
+			PRINT_LITERAL(ANSI_GREEN);                                  \
+			fwrite(numbufp, 1, dgts, stdout);                           \
+			PRINT_LITERAL(ANSI_RESET ":");                              \
+			fwrite(p, 1, pp - p, stdout);                               \
+			PRINT_LITERAL(ANSI_RED);                                    \
+			fwrite(pp, 1, needlelen, stdout);                           \
+			PRINT_LITERAL(ANSI_RESET);                                  \
+			fwrite(pp + needlelen, 1, ppp - (pp + needlelen), stdout);  \
 		} while (0)
 
 #endif
 
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
-	int fd = open(filename, O_RDONLY, S_IRUSR | S_IWUSR);
+	int fd = open(filename, O_RDONLY, S_IRUSR);
 	if (unlikely(fd < 0)
 	    || unlikely(fstat(fd, &g_st))
 	    || unlikely(g_st.st_size >= MAX_FILE_SZ)
@@ -105,10 +110,11 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	const unsigned int sz = g_st.st_size;
 	unsigned char *p = mmap(NULL, sz, PROT_READ, MAP_PRIVATE, fd, 0);
 	unsigned char *const pstart = (unsigned char *)p;
-	unsigned int NL;
+	unsigned int NL = 1;
 	unsigned int dgts;
 	char numbuf[UINT_LEN];
 	char *numbufp;
+	const unsigned char *plinestart = pstart;
 	for (unsigned char *const pend = p + sz, *pp, *ppp; (pp = (unsigned char *)g_memmem(p, sz, needle, needlelen)); p = ppp) {
 		p = pp;
 		for (;;) {
@@ -250,7 +256,7 @@ DEF_FIND_T(find_fgrep, fgrep, 1)
 
 static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 {
-	int fd = open(filename, O_RDONLY, S_IRUSR | S_IWUSR);
+	int fd = open(filename, O_RDONLY, S_IRUSR);
 	if (unlikely(fd < 0)
 	    || unlikely(fstat(fd, &g_st))
 	    || unlikely(g_st.st_size >= MAX_FILE_SZ)
@@ -268,7 +274,6 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 #if !USE_ANSI_COLORS
 			fwrite(filename, 1, flen, stdout);
 			putchar(':');
-			/* printf("%d", NL); */
 			numbufp = numbuf;
 			itoa_uint_pos(numbufp, NL, 10, dgts);
 			fwrite(numbufp, 1, dgts, stdout);
@@ -293,7 +298,6 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 			fwrite(filename, 1, flen, stdout);
 			PRINT_LITERAL(ANSI_RESET ":");
 			PRINT_LITERAL(ANSI_GREEN);
-			/* printf("%d", NL); */
 			numbufp = numbuf;
 			itoa_uint_pos(numbufp, NL, 10, dgts);
 			fwrite(numbufp, 1, dgts, stdout);
@@ -373,31 +377,6 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 	closedir(dp);
 }
 
-/* static size_t init_needle(char *dst, const char *src) */
-/* { */
-/* 	const char *const d = dst; */
-/* 	for (;; ++src, ++dst) { */
-/* 		switch (*src) { */
-/* 			CASE_UPPER */
-/* 			*dst = *src - 'A' + 'a'; */
-/* 			continue; */
-/* 		default: */
-/* 			*dst = *src; */
-/* 			continue; */
-/* 		case '\0': */
-/* 			*dst = '\0'; */
-/* 		} */
-/* 		break; */
-/* 	} */
-/* 	return dst - d; */
-/* } */
-
-/* static void init_fgrep(const char needle) */
-/* { */
-/* 	g_table[(unsigned char)needle] = WANTED; */
-/* 	g_table[(unsigned char)needle - 'a' + 'A'] = WANTED_UPPER; */
-/* } */
-
 static void stat_fail(const char *entry)
 {
 	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);
@@ -418,12 +397,9 @@ int main(int argc, char **argv)
 	init_shm();
 	if (argc == 1
 	    || !argv[1][0]) {
-		find_cat(".", 1);
+		find_fgrep(".", 0, DIR_ARG, strlen(DIR_ARG));
 		return 0;
 	}
-	/* char needlebuf[MAX_NEEDLE_LEN + 1]; */
-	/* const size_t needlebuflen = init_needle(needlebuf, NEEDLE_ARG); */
-	/* init_fgrep(*needlebuf); */
 	const size_t needlelen = strlen(NEEDLE_ARG);
 	init_memmem(NEEDLE_ARG, needlelen);
 	if (argc == 2)
@@ -449,8 +425,8 @@ int main(int argc, char **argv)
 		break;
 	case '\0':
 	GET_CWD:;
-		/* find_fgrep(NEEDLE_ARG, needlelen, ".", 1); */
-		/* break; */
+		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
+		break;
 	}
 	free_shm();
 	return 0;
