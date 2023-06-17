@@ -109,9 +109,9 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 {
 	int fd = open(filename, O_RDONLY, S_IRUSR);
 	if (unlikely(fd < 0
-	    || fstat(fd, &g_st)
-	    || g_st.st_size >= MAX_FILE_SZ
-	    || !g_st.st_size))
+		     || fstat(fd, &g_st)
+		     || g_st.st_size >= MAX_FILE_SZ
+		     || !g_st.st_size))
 		return;
 	const unsigned int csz = g_st.st_size;
 	unsigned int sz = csz;
@@ -410,7 +410,7 @@ static void no_such_file(const char *entry)
 int main(int argc, char **argv)
 {
 	init_shm();
-	if (argc == 1 || argv[1][0]) {
+	if (argc == 1 || !argv[1][0]) {
 		find_cat(".", 1);
 		return 1;
 	}
