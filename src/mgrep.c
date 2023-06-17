@@ -7,14 +7,15 @@
 #define PROG_NAME "rgrep"
 
 #include <dirent.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "config.h"
-/* #include "g_memmem.h" */
+#include "g_memmem.h"
 #include "global_table_256.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
@@ -98,69 +99,96 @@ struct stat g_st;
 
 #endif
 
-/* static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen) */
-/* { */
-/* 	int fd = open(filename, O_RDONLY, S_IRUSR); */
-/* 	if (unlikely(fd < 0)) */
-/* 		return; */
-/* 	if (unlikely(fstat(fd, &g_st))) */
-/* 		return; */
-/* 	if (unlikely(g_st.st_size >= MAX_FILE_SZ)) */
-/* 		return; */
-/* 	if (unlikely(!g_st.st_size)) */
-/* 		return; */
-/* 	unsigned char *p = mmap(NULL, g_st.st_size, PROT_READ, MAP_PRIVATE, fd, 0); */
-/* 	if (unlikely(p == MAP_FAILED)) */
-/* 		return; */
-/* 	unsigned int sz = g_st.st_size; */
-/* 	unsigned char *const pstart = p; */
-/* 	const unsigned char *plinestart = pstart; */
-/* 	const unsigned char *const pend = p + sz; */
-/* 	size_t NL = 1; */
-/* 	unsigned int dgts; */
-/* 	char numbuf[MAX_ITOA_DIGITS]; */
-/* 	char *numbufp; */
-/* 	unsigned char *pp; */
-/* 	unsigned char *ppp; */
-/* 	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) { */
-/* 		p = pp; */
-/* 		while (p != pstart) { */
-/* 			switch (g_table[*p]) { */
-/* 			case NEWLINE: */
-/* 				++p; */
-/* 				goto BREAK_FOR1; */
-/* 			case REJECT: */
-/* 				goto END; */
-/* 			} */
-/* 			--p; */
-/* 		} */
-/* BREAK_FOR1: */
-/* 		ppp = pp + needlelen; */
-/* 		for (;;) { */
-/* 			if (unlikely(ppp == pend)) { */
-/* 				FGREP_PRINT; */
-/* 				goto END; */
-/* 			} */
-/* 			switch (g_table[*ppp]) { */
-/* 			case NEWLINE: */
-/* 				++ppp; */
-/* 				goto BREAK_FOR2; */
-/* 			case REJECT: */
-/* 				goto END; */
-/* 			} */
-/* 			++ppp; */
-/* 		} */
-/* BREAK_FOR2:; */
-/* 		FGREP_PRINT; */
-/* 		sz -= ppp - p; */
-/* 		p = ppp; */
-/* 	} */
-/* END:; */
-/* 	if (unlikely(munmap(pstart, g_st.st_size))) { */
-/* 		fprintf(stderr, "Can't munmap %s\n", filename); */
-/* 		exit(1); */
-/* 	} */
-/* } */
+static void fgrep_err(const char *msg, const char *filename)
+{
+	perror("");
+	fprintf(stderr, PROG_NAME ":%s:%s", msg, filename);
+}
+
+static INLINE void *mmap_open(const char *filename, size_t *filesz, int *fd)
+{
+	*fd = open(filename, O_RDONLY, S_IRUSR);
+	if (unlikely(*fd < 0)) {
+		fgrep_err("Negative *fd", filename);
+		exit(1);
+	}
+	if (unlikely(fstat(*fd, &g_st))) {
+		fgrep_err("Can't fstat", filename);
+		exit(1);
+	}
+	*filesz = g_st.st_size;
+	return mmap(NULL, *filesz, PROT_READ, MAP_PRIVATE, *fd, 0);
+}
+
+static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
+{
+	int fd;
+	size_t sz;
+	unsigned char *p = mmap_open(filename, &sz, &fd);
+	if (unlikely(sz == MAX_FILE_SZ))
+		return;
+	if (unlikely(!sz))
+		return;
+	if (unlikely(p == MAP_FAILED)) {
+		fgrep_err("Mmap failed", filename);
+		exit(1);
+	}
+	fprintf(stderr, "sz:%zu\n", sz);
+	unsigned char *const pstart = p;
+	const unsigned char *plinestart = pstart;
+	const unsigned char *const pend = p + sz;
+	size_t NL = 1;
+	unsigned int dgts;
+	char numbuf[MAX_ITOA_DIGITS];
+	char *numbufp;
+	unsigned char *pp;
+	unsigned char *ppp;
+	unsigned char *start;
+	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) {
+		start = p;
+		p = pp;
+		while (p != pstart) {
+			switch (g_table[*p]) {
+			case NEWLINE:
+				++p;
+				goto BREAK_FOR1;
+			case REJECT:
+				goto END;
+			}
+			--p;
+		}
+BREAK_FOR1:
+		ppp = pp + needlelen;
+		for (;;) {
+			if (unlikely(ppp == pend)) {
+				FGREP_PRINT;
+				goto END;
+			}
+			switch (g_table[*ppp]) {
+			case NEWLINE:
+				++ppp;
+				goto BREAK_FOR2;
+			case REJECT:
+				goto END;
+			}
+			++ppp;
+		}
+BREAK_FOR2:;
+		FGREP_PRINT;
+		sz -= ppp - start;
+		p = ppp;
+		fprintf(stderr, "\n%zu\n", sz);
+	}
+END:;
+    	if (unlikely(close(fd))) {
+		fgrep_err("Can't close", filename);
+		exit(1);
+	}
+	if (unlikely(munmap(pstart, g_st.st_size))) {
+		fgrep_err("Can't munmap", filename);
+		exit(1);
+	}
+}
 
 #define IF_EXCLUDED_REG_DO(filename, action)  \
 	do {                                  \
@@ -259,24 +287,19 @@ CONT:;                                                                          
 		return;                                                                               \
 	}
 
-/* DEF_FIND_T(find_fgrep, fgrep, 1) */
+DEF_FIND_T(find_fgrep, fgrep, 1)
 
 static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 {
-	int fd = open(filename, O_RDONLY, S_IRUSR);
-	if (unlikely(fd < 0))
+	int fd;
+	size_t sz;
+	unsigned char *p = mmap_open(filename, &sz, &fd);
+	if (unlikely(sz >= MAX_FILE_SZ))
 		return;
-	if (unlikely(fstat(fd, &g_st)))
+	if (unlikely(!sz))
 		return;
-	if (unlikely(g_st.st_size >= MAX_FILE_SZ))
-		return;
-	if (unlikely(!g_st.st_size))
-		return;
-	unsigned char *p = mmap(NULL, g_st.st_size + 1, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (unlikely(p == MAP_FAILED))
 		return;
-	;
-	const unsigned int sz = g_st.st_size;
 	unsigned char *const pstart = p;
 	unsigned char *const pend = p + sz;
 	char numbuf[MAX_ITOA_DIGITS];
@@ -337,6 +360,10 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 BREAK_FOR:;
 	}
 END:
+    	if (unlikely(close(fd))) {
+		fgrep_err("Can't close", filename);
+		exit(1);
+	}
 	if (unlikely(munmap(pstart, sz))) {
 		fprintf(stderr, "Can't munmap %s\n", filename);
 		exit(1);
@@ -392,57 +419,53 @@ CONT:;
 	closedir(dp);
 }
 
-/* static void stat_fail(const char *entry) */
-/* { */
-/* 	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry); */
-/* } */
+static void stat_fail(const char *entry)
+{
+	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);
+}
 
-/* static void no_such_file(const char *entry) */
-/* { */
-/* 	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry); */
-/* } */
+static void no_such_file(const char *entry)
+{
+	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry);
+}
 
 #define NEEDLE_ARG argv[1]
 #define DIR_ARG	   argv[2]
 
-#define NEEDLELEN strlen(NEEDLE_ARG)
-
-int main()
+int main(int argc, char **argv)
 {
-	find_cat(".", 1);
-	return 0;
-	/* init_shm(); */
-	/* if (argc == 1 || !argv[1][0]) { */
-	/* 	find_cat(".", 1); */
-	/* 	return 1; */
-	/* } */
-	/* const size_t needlelen = strlen(NEEDLE_ARG); */
-	/* init_memmem(NEEDLE_ARG, needlelen); */
-	/* if (argc == 2) */
-	/* 	goto GET_CWD; */
-	/* switch (DIR_ARG[0]) { */
-	/* case '.': */
-	/* 	if (unlikely(DIR_ARG[1] == '\0')) */
-	/* 		goto GET_CWD; */
-	/* /1* FALLTHROUGH *1/ */
-	/* default: */
-	/* 	if (unlikely(stat(DIR_ARG, &g_st))) { */
-	/* 		stat_fail(DIR_ARG); */
-	/* 		return 1; */
-	/* 	} */
-	/* 	if (unlikely(S_ISREG(g_st.st_mode))) { */
-	/* 		fgrep(NEEDLE_ARG, DIR_ARG, needlelen, strlen(DIR_ARG)); */
-	/* 	} else if (S_ISDIR(g_st.st_mode)) { */
-	/* 		find_fgrep(NEEDLE_ARG, needlelen, DIR_ARG, strlen(DIR_ARG)); */
-	/* 	} else { */
-	/* 		no_such_file(DIR_ARG); */
-	/* 		return 1; */
-	/* 	} */
-	/* 	break; */
-	/* case '\0': */
-/* GET_CWD:; */
-	/* 	find_fgrep(NEEDLE_ARG, needlelen, ".", 1); */
-	/* 	break; */
-	/* } */
-	/* free_shm(); */
+	init_shm();
+	if (argc == 1 || !argv[1][0]) {
+		find_cat(".", 1);
+		return 1;
+	}
+	const size_t needlelen = strlen(NEEDLE_ARG);
+	init_memmem(NEEDLE_ARG, needlelen);
+	if (argc == 2)
+		goto GET_CWD;
+	switch (DIR_ARG[0]) {
+	case '.':
+		if (unlikely(DIR_ARG[1] == '\0'))
+			goto GET_CWD;
+	/* FALLTHROUGH */
+	default:
+		if (unlikely(stat(DIR_ARG, &g_st))) {
+			stat_fail(DIR_ARG);
+			return 1;
+		}
+		if (unlikely(S_ISREG(g_st.st_mode))) {
+			fgrep(NEEDLE_ARG, DIR_ARG, needlelen, strlen(DIR_ARG));
+		} else if (S_ISDIR(g_st.st_mode)) {
+			find_fgrep(NEEDLE_ARG, needlelen, DIR_ARG, strlen(DIR_ARG));
+		} else {
+			no_such_file(DIR_ARG);
+			return 1;
+		}
+		break;
+	case '\0':
+GET_CWD:;
+		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
+		break;
+	}
+	free_shm();
 }
