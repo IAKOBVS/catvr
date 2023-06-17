@@ -58,18 +58,24 @@ struct stat g_st;
 
 #if !USE_ANSI_COLORS
 
-#	define FGREP_PRINT                                                                                  \
-		do {                                                                                         \
-			NL = 1;                                                                              \
-			for (const unsigned char *p_ = pstart; (p_ = memchr(p_, '\n', pp - p_)); ++p_, ++NL) \
-				;                                                                            \
-			numbufp = numbuf;                                                                    \
-			itoa_uint_pos(numbufp, NL, 10, dgts);                                                \
-			fwrite(filename, 1, flen, stdout);                                                   \
-			putchar(':');                                                                        \
-			fwrite(numbufp, 1, dgts, stdout);                                                    \
-			putchar(':');                                                                        \
-			fwrite(p, 1, ppp - p, stdout);                                                       \
+#	define FGREP_PRINT                                                         \
+		do {                                                                \
+			for (const unsigned char *tmp = plinestart;; ++tmp, ++NL) { \
+				tmp = memchr(tmp, '\n', pp - tmp);                  \
+				if (unlikely(!tmp))                                 \
+					break;                                      \
+				plinestart = tmp;                                   \
+			}                                                           \
+                                                                                    \
+			numbufp = numbuf;                                           \
+			itoa_uint_pos(numbufp, NL, 10, dgts);                       \
+                                                                                    \
+			fwrite(filename, 1, flen, stdout);                          \
+			putchar(':');                                               \
+                                                                                    \
+			fwrite(numbufp, 1, dgts, stdout);                           \
+			putchar(':');                                               \
+			fwrite(p, 1, ppp - p, stdout);                              \
 		} while (0)
 
 #else
@@ -107,15 +113,19 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	    || unlikely(g_st.st_size >= MAX_FILE_SZ)
 	    || unlikely(!g_st.st_size))
 		return;
-	const unsigned int sz = g_st.st_size;
-	unsigned char *p = mmap(NULL, sz, PROT_READ, MAP_PRIVATE, fd, 0);
+	const unsigned int csz = g_st.st_size;
+	unsigned int sz = csz;
+	unsigned char *p = mmap(NULL, csz + 1, PROT_READ, MAP_PRIVATE, fd, 0);
 	unsigned char *const pstart = (unsigned char *)p;
 	unsigned int NL = 1;
 	unsigned int dgts;
 	char numbuf[UINT_LEN];
 	char *numbufp;
 	const unsigned char *plinestart = pstart;
-	for (unsigned char *const pend = p + sz, *pp, *ppp; (pp = (unsigned char *)g_memmem(p, sz, needle, needlelen)); p = ppp) {
+	const unsigned char *const pend = p + sz;
+	unsigned char *pp;
+	unsigned char *ppp;
+	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) {
 		p = pp;
 		for (;;) {
 			switch (g_table[*p]) {
@@ -129,9 +139,13 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 				break;
 			--p;
 		}
-	BREAK_FOR1:
-		ppp = pp + needlelen - 1;
+BREAK_FOR1:
+		ppp = pp + needlelen;
 		for (;;) {
+			if (unlikely(ppp == pend)) {
+				FGREP_PRINT;
+				goto END;
+			}
 			switch (g_table[*ppp]) {
 			case NEWLINE:
 				++ppp;
@@ -139,17 +153,15 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 			case REJECT:
 				goto END;
 			}
-			if (unlikely(ppp == pend)) {
-				FGREP_PRINT;
-				goto END;
-			}
 			++ppp;
 		}
-	BREAK_FOR2:;
+BREAK_FOR2:;
 		FGREP_PRINT;
+		sz -= ppp - p;
+		p = ppp;
 	}
 END:;
-	if (unlikely(munmap(pstart, sz))) {
+	if (unlikely(munmap(pstart, csz + 1))) {
 		fprintf(stderr, "Can't munmap %s\n", filename);
 		exit(1);
 	}
@@ -207,10 +219,10 @@ END:;
 			FUNC_REG(needle, fulpath, 0, 0);                                                         \
 	} while (0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                     \
-	do {                                                                                                             \
-		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                               \
-		FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                      \
+	do {                                                                                              \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                \
+		FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -246,7 +258,7 @@ END:;
 		char fulpath[MAX_PATH_LEN];                                                           \
 		while ((ep = readdir(dp))) {                                                          \
 			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                        \
-		CONT:;                                                                                \
+CONT:;                                                                                                \
 		}                                                                                     \
 		closedir(dp);                                                                         \
 		return;                                                                               \
@@ -274,6 +286,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 #if !USE_ANSI_COLORS
 			fwrite(filename, 1, flen, stdout);
 			putchar(':');
+
 			numbufp = numbuf;
 			itoa_uint_pos(numbufp, NL, 10, dgts);
 			fwrite(numbufp, 1, dgts, stdout);
@@ -298,6 +311,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 			fwrite(filename, 1, flen, stdout);
 			PRINT_LITERAL(ANSI_RESET ":");
 			PRINT_LITERAL(ANSI_GREEN);
+
 			numbufp = numbuf;
 			itoa_uint_pos(numbufp, NL, 10, dgts);
 			fwrite(numbufp, 1, dgts, stdout);
@@ -318,7 +332,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 				putchar(*p++);
 			}
 #endif
-		BREAK_FOR:;
+BREAK_FOR:;
 		}
 	}
 END:
@@ -372,7 +386,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
-	CONT:;
+CONT:;
 	}
 	closedir(dp);
 }
@@ -395,10 +409,8 @@ static void no_such_file(const char *entry)
 int main(int argc, char **argv)
 {
 	init_shm();
-	if (argc == 1
-	    || !argv[1][0]) {
-		find_fgrep(".", 0, DIR_ARG, strlen(DIR_ARG));
-		return 0;
+	if (argc == 1) {
+		find_fgrep("", 0, ".", 1);
 	}
 	const size_t needlelen = strlen(NEEDLE_ARG);
 	init_memmem(NEEDLE_ARG, needlelen);
@@ -424,7 +436,7 @@ int main(int argc, char **argv)
 		}
 		break;
 	case '\0':
-	GET_CWD:;
+GET_CWD:;
 		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
 		break;
 	}

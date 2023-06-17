@@ -37,7 +37,7 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	fwrite(s, 1, sizeof(s) - 1, stdout)
 
 	do {
-	CONT:
+CONT:
 		g_c = getc(fp);
 		switch (g_table[g_c + 1]) {
 		case WANTED_UPPER:
@@ -191,7 +191,7 @@ OUT:
 		char fulpath[MAX_PATH_LEN];                                                           \
 		while ((ep = readdir(dp))) {                                                          \
 			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                        \
-		CONT:;                                                                                \
+CONT:;                                                                                                \
 		}                                                                                     \
 		closedir(dp);                                                                         \
 		return;                                                                               \
@@ -209,7 +209,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 	g_lnp = g_ln;
 	g_NL = 1;
 	do {
-	CONT:;
+CONT:;
 		switch (*g_lnp = getc(fp)) {
 		default:
 		case '\t':
@@ -293,7 +293,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
-	CONT:;
+CONT:;
 	}
 	closedir(dp);
 }
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 		}
 		break;
 	case '\0':
-	GET_CWD:;
+GET_CWD:;
 		g_fuldirlen = 1;
 		find_fgrep(needlebuf, needlebuflen, ".", g_fuldirlen);
 		break;

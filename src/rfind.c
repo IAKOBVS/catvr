@@ -93,7 +93,7 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 #if DEBUG
 		printf("entries: %s\n", ep->d_name);
 #endif /* DEBUG */
-	CONT:;
+CONT:;
 	}
 	closedir(dp);
 }
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 	case 2:
 		ptnlen = init_ptn(ptnbuf, argv[1]);
 		ptn = ptnbuf;
-	dotdir:
+dotdir:
 		dir = ".";
 		dlen = 1;
 		break;

@@ -58,11 +58,12 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 		if (*hs == *ne)
 			return (char *)hs;
 		return (char *)memchr(hs, *ne, hlen);
-	case 2:;
+	case 2: {
 		uint32_t nw = ne[0] << 16 | ne[1], hw = hs[0] << 16 | hs[1];
 		for (hs++; hs <= end && hw != nw;)
 			hw = hw << 16 | *++hs;
 		return hw == nw ? (char *)hs - 1 : NULL;
+	}
 	}
 	/* Assumes that needle length will never be over 256; */
 	/* otherwise check if needle length is over 256 */
@@ -82,7 +83,7 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 			continue;
 		if (!memcmp(hs, n, m1)) {
 #define reset_table \
-			g_mtable[hash] = 0
+	g_mtable[hash] = 0
 			reset_table;
 			return (char *)hs;
 		}
