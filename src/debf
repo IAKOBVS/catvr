@@ -1,6 +1,4 @@
 #!/bin/sh
-rm ../bin/rfind &
-rm ../bin/rgrep &
-rm ../bin/rgrep_thr &
+rm ../bin
 wait
 ./deb

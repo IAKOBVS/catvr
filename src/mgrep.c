@@ -19,14 +19,20 @@
 #include "global_table_256.h"
 #include "librgrep.h"
 #include "unlocked_macros.h"
-/* #include "fork.h" */
 
 /* 200 MB */
 #define MAX_FILE_SZ 209715200
 
-#define FORK_AND_WAIT(x) (x)
-#define init_shm()
-#define free_shm()
+#define USE_FORK 0
+
+#if USE_FORK
+#	include "fork.h"
+#else
+#	 define FORK_AND_WAIT(x) (x)
+#	 define init_shm()
+#	 define free_shm()
+#endif /* USE_FORK */
+
 
 struct stat g_st;
 
@@ -236,10 +242,10 @@ END:;
 			FUNC_REG(needle, fulpath, 0, 0);                                                         \
 	} while (0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                      \
-	do {                                                                                              \
-		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                \
-		FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                     \
+	do {                                                                                                             \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                               \
+		FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE

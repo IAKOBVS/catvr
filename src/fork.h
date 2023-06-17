@@ -53,7 +53,7 @@ static INLINE void free_shm()
 			DO;                             \
 		} else {                                \
 			IF_FORK_MAX_WAIT_CHILD;         \
-			fflush_unlocked(stdout);        \
+			fflush(stdout);                 \
 			g_pid = fork();                 \
 			switch (g_pid) {                \
 			case 0:                         \
