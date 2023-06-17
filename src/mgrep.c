@@ -133,7 +133,6 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 		fgrep_err("Mmap failed", filename);
 		exit(1);
 	}
-	fprintf(stderr, "sz:%zu\n", sz);
 	unsigned char *const pstart = p;
 	const unsigned char *plinestart = pstart;
 	const unsigned char *const pend = p + sz;
@@ -177,7 +176,6 @@ BREAK_FOR2:;
 		FGREP_PRINT;
 		sz -= ppp - start;
 		p = ppp;
-		fprintf(stderr, "\n%zu\n", sz);
 	}
 END:;
     	if (unlikely(close(fd))) {
