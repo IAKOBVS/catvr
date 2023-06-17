@@ -7,11 +7,11 @@
 #define PROG_NAME "rgrep"
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <unistd.h>
 
 #include "config.h"
@@ -30,18 +30,16 @@
 
 struct stat g_st;
 
-#define MAX_ITOA_DIGITS 19
-
 #undef itoa_uint_pos
-#define itoa_uint_pos(s, n, base, digits)                    \
-	do {                                                 \
-		unsigned int n_ = n;                         \
-		char *const end = (s) + MAX_ITOA_DIGITS - 1; \
-		(s) = end;                                   \
-		do                                           \
-			*(s)-- = (n_) % (base) + '0';        \
-		while ((n_) /= 10);                          \
-		digits = end - (s)++;                        \
+#define itoa_uint_pos(s, n, base, digits)             \
+	do {                                          \
+		unsigned int n_ = n;                  \
+		char *const end = (s) + UINT_LEN - 1; \
+		(s) = end;                            \
+		do                                    \
+			*(s)-- = (n_) % (base) + '0'; \
+		while ((n_) /= 10);                   \
+		digits = end - (s)++;                 \
 	} while (0)
 
 #define PRINT_LITERAL(s) fwrite((s), 1, sizeof(s) - 1, stdout)
@@ -68,10 +66,8 @@ struct stat g_st;
 			COUNT_NL(NL);                         \
 			numbufp = numbuf;                     \
 			itoa_uint_pos(numbufp, NL, 10, dgts); \
-                                                              \
 			fwrite(filename, 1, flen, stdout);    \
 			putchar(':');                         \
-                                                              \
 			fwrite(numbufp, 1, dgts, stdout);     \
 			putchar(':');                         \
 			fwrite(p, 1, ppp - p, stdout);        \
@@ -138,7 +134,7 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	const unsigned char *const pend = p + sz;
 	size_t NL = 1;
 	unsigned int dgts;
-	char numbuf[MAX_ITOA_DIGITS];
+	char numbuf[UINT_LEN];
 	char *numbufp;
 	unsigned char *pp;
 	unsigned char *ppp;
@@ -178,7 +174,7 @@ BREAK_FOR2:;
 		p = ppp;
 	}
 END:;
-    	if (unlikely(close(fd))) {
+	if (unlikely(close(fd))) {
 		fgrep_err("Can't close", filename);
 		exit(1);
 	}
@@ -300,7 +296,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		return;
 	unsigned char *const pstart = p;
 	unsigned char *const pend = p + sz;
-	char numbuf[MAX_ITOA_DIGITS];
+	char numbuf[UINT_LEN];
 	char *numbufp;
 	unsigned int dgts;
 	if (memchr(p, 0, sz / 2))
@@ -309,11 +305,9 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 #if !USE_ANSI_COLORS
 		fwrite(filename, 1, flen, stdout);
 		putchar(':');
-
 		numbufp = numbuf;
 		itoa_uint_pos(numbufp, NL, 10, dgts);
 		fwrite(numbufp, 1, dgts, stdout);
-
 		putchar(':');
 		for (;;) {
 			switch (g_table[*p]) {
@@ -334,11 +328,9 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		fwrite(filename, 1, flen, stdout);
 		PRINT_LITERAL(ANSI_RESET ":");
 		PRINT_LITERAL(ANSI_GREEN);
-
 		numbufp = numbuf;
 		itoa_uint_pos(numbufp, NL, 10, dgts);
 		fwrite(numbufp, 1, dgts, stdout);
-
 		PRINT_LITERAL(ANSI_RESET ":");
 		for (;;) {
 			switch (g_table[*p]) {
@@ -358,7 +350,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 BREAK_FOR:;
 	}
 END:
-    	if (unlikely(close(fd))) {
+	if (unlikely(close(fd))) {
 		fgrep_err("Can't close", filename);
 		exit(1);
 	}
@@ -429,8 +421,6 @@ static void no_such_file(const char *entry)
 
 #define NEEDLE_ARG argv[1]
 #define DIR_ARG	   argv[2]
-
-#include <pthread.h>
 
 int main(int argc, char **argv)
 {
