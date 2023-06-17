@@ -28,13 +28,10 @@
 #if USE_FORK
 #	include "fork.h"
 #else
-#	 define FORK_AND_WAIT(x) (x)
-#	 define init_shm()
-#	 define free_shm()
+#	define FORK_AND_WAIT(x) (x)
+#	define init_shm()
+#	define free_shm()
 #endif /* USE_FORK */
-
-
-struct stat g_st;
 
 #undef itoa_uint_pos
 #define itoa_uint_pos(s, n, base, digits)             \
@@ -53,7 +50,7 @@ struct stat g_st;
 #define COUNT_NL(NL)                               \
 	do {                                       \
 		const unsigned char *tmp = p;      \
-		while (tmp != plinestart) {        \
+		while (tmp != linep) {             \
 			switch (g_table[*tmp--]) { \
 			case REJECT:               \
 				goto END;          \
@@ -62,7 +59,7 @@ struct stat g_st;
 			default:;                  \
 			}                          \
 		}                                  \
-		plinestart = p;                    \
+		linep = p;                         \
 	} while (0)
 
 #if !USE_ANSI_COLORS
@@ -114,12 +111,25 @@ static INLINE void *mmap_open(const char *filename, size_t *filesz, int *fd)
 		fgrep_err("Negative *fd", filename);
 		exit(1);
 	}
-	if (unlikely(fstat(*fd, &g_st))) {
+	struct stat st;
+	if (unlikely(fstat(*fd, &st))) {
 		fgrep_err("Can't fstat", filename);
 		exit(1);
 	}
-	*filesz = g_st.st_size;
+	*filesz = st.st_size;
 	return mmap(NULL, *filesz, PROT_READ, MAP_PRIVATE, *fd, 0);
+}
+
+static INLINE void mmap_close(void *p, const char *filename, size_t filesz, int fd)
+{
+	if (unlikely(close(fd))) {
+		fgrep_err("Can't close", filename);
+		exit(1);
+	}
+	if (unlikely(munmap(p, filesz))) {
+		fgrep_err("Can't munmap", filename);
+		exit(1);
+	}
 }
 
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
@@ -135,8 +145,9 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 		fgrep_err("Mmap failed", filename);
 		exit(1);
 	}
-	unsigned char *const pstart = p;
-	const unsigned char *plinestart = pstart;
+	const size_t filesz = sz;
+	unsigned char *const filep = p;
+	const unsigned char *linep = filep;
 	const unsigned char *const pend = p + sz;
 	size_t NL = 1;
 	unsigned int dgts;
@@ -148,7 +159,7 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) {
 		start = p;
 		p = pp;
-		while (p != pstart) {
+		while (p != filep) {
 			switch (g_table[*p]) {
 			case NEWLINE:
 				++p;
@@ -180,14 +191,7 @@ BREAK_FOR2:;
 		p = ppp;
 	}
 END:;
-	if (unlikely(close(fd))) {
-		fgrep_err("Can't close", filename);
-		exit(1);
-	}
-	if (unlikely(munmap(pstart, g_st.st_size))) {
-		fgrep_err("Can't munmap", filename);
-		exit(1);
-	}
+	mmap_close(filep, filename, filesz, fd);
 }
 
 #define IF_EXCLUDED_REG_DO(filename, action)  \
@@ -300,7 +304,8 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		return;
 	if (unlikely(p == MAP_FAILED))
 		return;
-	unsigned char *const pstart = p;
+	const size_t filesz = sz;
+	unsigned char *const filep = p;
 	unsigned char *const pend = p + sz;
 	char numbuf[UINT_LEN];
 	char *numbufp;
@@ -315,20 +320,6 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		itoa_uint_pos(numbufp, NL, 10, dgts);
 		fwrite(numbufp, 1, dgts, stdout);
 		putchar(':');
-		for (;;) {
-			switch (g_table[*p]) {
-			case NEWLINE:
-				++p;
-				putchar('\n');
-				goto BREAK_FOR;
-			case REJECT:;
-			}
-			if (unlikely(p == pend)) {
-				putchar('\n');
-				goto END;
-			}
-			putchar(*p++);
-		}
 #else
 		PRINT_LITERAL(ANSI_RED);
 		fwrite(filename, 1, flen, stdout);
@@ -338,6 +329,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		itoa_uint_pos(numbufp, NL, 10, dgts);
 		fwrite(numbufp, 1, dgts, stdout);
 		PRINT_LITERAL(ANSI_RESET ":");
+#endif
 		for (;;) {
 			switch (g_table[*p]) {
 			case NEWLINE:
@@ -352,18 +344,10 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 			}
 			putchar(*p++);
 		}
-#endif
 BREAK_FOR:;
 	}
 END:
-	if (unlikely(close(fd))) {
-		fgrep_err("Can't close", filename);
-		exit(1);
-	}
-	if (unlikely(munmap(pstart, sz))) {
-		fprintf(stderr, "Can't munmap %s\n", filename);
-		exit(1);
-	}
+	mmap_close(filep, filename, filesz, fd);
 }
 
 static void find_cat(const char *RESTRICT dir, const size_t dlen)
@@ -444,20 +428,21 @@ int main(int argc, char **argv)
 		if (unlikely(DIR_ARG[1] == '\0'))
 			goto GET_CWD;
 	/* FALLTHROUGH */
-	default:
-		if (unlikely(stat(DIR_ARG, &g_st))) {
+	default: {
+		struct stat st;
+		if (unlikely(stat(DIR_ARG, &st))) {
 			stat_fail(DIR_ARG);
 			return 1;
 		}
-		if (unlikely(S_ISREG(g_st.st_mode))) {
+		if (unlikely(S_ISREG(st.st_mode))) {
 			fgrep(NEEDLE_ARG, DIR_ARG, needlelen, strlen(DIR_ARG));
-		} else if (S_ISDIR(g_st.st_mode)) {
+		} else if (S_ISDIR(st.st_mode)) {
 			find_fgrep(NEEDLE_ARG, needlelen, DIR_ARG, strlen(DIR_ARG));
 		} else {
 			no_such_file(DIR_ARG);
 			return 1;
 		}
-		break;
+	} break;
 	case '\0':
 GET_CWD:;
 		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
