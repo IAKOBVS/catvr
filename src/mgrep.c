@@ -108,10 +108,10 @@ struct stat g_st;
 static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
 {
 	int fd = open(filename, O_RDONLY, S_IRUSR);
-	if (unlikely(fd < 0)
-	    || unlikely(fstat(fd, &g_st))
-	    || unlikely(g_st.st_size >= MAX_FILE_SZ)
-	    || unlikely(!g_st.st_size))
+	if (unlikely(fd < 0
+	    || fstat(fd, &g_st)
+	    || g_st.st_size >= MAX_FILE_SZ
+	    || !g_st.st_size))
 		return;
 	const unsigned int csz = g_st.st_size;
 	unsigned int sz = csz;
@@ -165,6 +165,7 @@ END:;
 		fprintf(stderr, "Can't munmap %s\n", filename);
 		exit(1);
 	}
+	exit(1);
 }
 
 #define IF_EXCLUDED_REG_DO(filename, action)  \
@@ -409,8 +410,9 @@ static void no_such_file(const char *entry)
 int main(int argc, char **argv)
 {
 	init_shm();
-	if (argc == 1) {
-		find_fgrep("", 0, ".", 1);
+	if (argc == 1 || argv[1][0]) {
+		find_cat(".", 1);
+		return 1;
 	}
 	const size_t needlelen = strlen(NEEDLE_ARG);
 	init_memmem(NEEDLE_ARG, needlelen);
