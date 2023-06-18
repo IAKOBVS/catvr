@@ -15,7 +15,7 @@
 #include "g_memmem.h"
 #include "globals.h"
 #include "librgrep.h"
-#include "unlocked_macros.h"
+#include "use_unlocked_io.h"
 
 /* #define FORK_AND_WAIT(x) (x) */
 /* #define init_shm() */

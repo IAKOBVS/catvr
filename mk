@@ -14,23 +14,27 @@ else
 fi
 mkdir -p bin
 cd src || return
+get_headers()
+{
+	sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]\{0,\}"\([-\._A-Za-z]\{1,\}\)"$/\1/p' "$1"
+}
 for file in $(echo *.c); do
 	{
 		bin=../bin/${file%.*}
-		headers=$(sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]\{0,\}"\([-\._A-Za-z]\{1,\}\)"$/\1/p' "$file")
 		if test "$file" -nt "$bin"; then
 			update=1
-			grep -q -F config.h && ./src/max_fork
+			grep -q -F config.h && ./get_max_fork
 			grep -q -F pthread.h && set -- $@ -pthread
 			grep -q -F omp.h && set -- $@ -fopenmp
 		else
+			headers=$(get_headers "$file")
 			for h in $headers; do
 				if test "$h" -nt "$bin"; then
 					update=1
 					break
 				fi
 			done
-			case $headers in *config.h*) ./src/max_fork ;; esac
+			case $headers in *config.h*) ./get_max_fork ;; esac
 			case $headers in *pthread.h*) set -- $@ -pthread ;; esac
 			case $headers in *omp.h*) set -- $@ -fopenmp ;; esac
 		fi

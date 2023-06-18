@@ -17,7 +17,7 @@
 #include "config.h"
 #include "global_table.h"
 #include "librgrep.h"
-#include "unlocked_macros.h"
+#include "use_unlocked_io.h"
 
 /* #define flockfile(fp) */
 /* #define funlockfile(fp) */

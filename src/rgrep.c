@@ -18,7 +18,7 @@
 #include "g_memmem.h"
 #include "global_table_256.h"
 #include "librgrep.h"
-#include "unlocked_macros.h"
+#include "use_unlocked_io.h"
 
 /* 200 MB */
 #define MAX_FILE_SZ 209715200
