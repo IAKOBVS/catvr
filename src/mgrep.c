@@ -192,20 +192,25 @@ END:;
 	mmap_close(filep, filename, filesz, fd);
 }
 
-/* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DIR_DO(filename, action)                 \
 	do {                                                 \
 		if ((filename)[0] == '.')                    \
 			switch ((filename)[1]) {             \
 			case '.':                            \
+				/* .. */                     \
+				action;                      \
+				break;                       \
+				/* . */                      \
 			case '\0':                           \
 				action;                      \
 				break;                       \
+				/* .git */                   \
 			case 'g':                            \
 				if ((filename)[2] == 'i'     \
 				    && (filename)[3] == 't') \
 					action;              \
 				break;                       \
+				/* .vscode */                \
 			case 'v':                            \
 				if ((filename)[2] == 's'     \
 				    && (filename)[3] == 'c'  \
@@ -217,22 +222,56 @@ END:;
 			}                                    \
 	} while (0)
 
-#define IF_EXCLUDED_REG_DO(filename, action)  \
-	do {                                  \
-		if ((filename)[0] == '.'      \
-		    && (filename)[1] == 'c'   \
-		    && (filename)[2] == 'l'   \
-		    && (filename)[3] == 'a'   \
-		    && (filename)[4] == 'n'   \
-		    && (filename)[5] == 'g'   \
-		    && (filename)[6] == '-'   \
-		    && (filename)[7] == 'f'   \
-		    && (filename)[8] == 'o'   \
-		    && (filename)[9] == 'r'   \
-		    && (filename)[10] == 'm'  \
-		    && (filename)[11] == 'a'  \
-		    && (filename)[12] == 't') \
-			action;               \
+#define IF_EXCLUDED_REG_DO(filename, action)                           \
+	do {                                                           \
+		if ((filename)[0] == '.') {                            \
+			switch ((filename)[1]) {                       \
+			case '.':                                      \
+				/* .. */                               \
+				action;                                \
+				break;                                 \
+			case '\0':                                     \
+				/* . */                                \
+				action;                                \
+				break;                                 \
+			case 'g':                                      \
+				if ((filename)[2] == 'i') {            \
+					/* .gitignore */               \
+					if (((filename)[3] == 't')     \
+					    && ((filename)[4] == 'i')  \
+					    && ((filename)[5] == 'g')  \
+					    && ((filename)[6] == 'n')  \
+					    && ((filename)[7] == 'o')  \
+					    && ((filename)[8] == 'r')  \
+					    && ((filename)[9] == 'e')) \
+						action;                \
+				}                                      \
+				break;                                 \
+			case 'c':                                      \
+				/* clang-format */                     \
+				if ((filename)[2] == 'l'               \
+				    && ((filename)[3] == 'a')          \
+				    && ((filename)[4] == 'n')          \
+				    && ((filename)[5] == 'g')          \
+				    && ((filename)[6] == '-')          \
+				    && ((filename)[7] == 'f')          \
+				    && ((filename)[8] == 'o')          \
+				    && ((filename)[9] == 'r')          \
+				    && ((filename)[10] == 'm')         \
+				    && ((filename)[11] == 'a')         \
+				    && ((filename)[12] == 't'))        \
+					action;                        \
+				break;                                 \
+				/* .ignore */                          \
+			case 'i':                                      \
+				if (((filename)[2] == 'g')             \
+				    && ((filename)[3] == 'n')          \
+				    && ((filename)[4] == 'o')          \
+				    && ((filename)[5] == 'r')          \
+				    && ((filename)[6] == 'e'))         \
+					action;                        \
+			}                                              \
+		}                                                      \
 	} while (0)
 
 #define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                     \
@@ -254,29 +293,29 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
-#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-	do {                                                        \
-		switch (ep->d_type) {                               \
-		case DT_REG:                                        \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
-			break;                                      \
-		case DT_DIR:                                        \
-			FIND_FGREP_DO_DIR(FUNC_SELF);               \
-			break;                                      \
-		}                                                   \
-	} while (0)
+#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)  \
+		do {                                                  \
+			switch (ep->d_type) {                         \
+			case DT_REG:                                  \
+				FIND_FGREP_DO_REG(FUNC_REG, USE_LEN); \
+				break;                                \
+			case DT_DIR:                                  \
+				FIND_FGREP_DO_DIR(FUNC_SELF);         \
+				break;                                \
+			}                                             \
+		} while (0)
 
 #else
 
-#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-	do {                                                        \
-		if (unlikely(stat(dir, &g_st)))                     \
-			continue;                                   \
-		if (S_ISREG(g_st.st_mode))                          \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
-		else if (S_ISDIR(g_st.st_mode))                     \
-			FIND_FGREP_DO_DIR(FUNC_SELF);               \
-	} while (0)
+#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)  \
+		do {                                                  \
+			if (unlikely(stat(dir, &g_st)))               \
+				continue;                             \
+			if (S_ISREG(g_st.st_mode))                    \
+				FIND_FGREP_DO_REG(FUNC_REG, USE_LEN); \
+			else if (S_ISDIR(g_st.st_mode))               \
+				FIND_FGREP_DO_DIR(FUNC_SELF);         \
+		} while (0)
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
