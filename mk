@@ -2,6 +2,7 @@
 scripts_dir=$HOME/.local/bin/scripts
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
+	echo 'Set a directory in which to put the executable'
 fi
 if [ -f /usr/bin/gcc ]; then
 	compiler=gcc
@@ -15,29 +16,29 @@ mkdir -p bin
 cd src || return
 for file in $(echo *.c); do
 	{
-	bin=../bin/${file%.*}
-	headers=$(sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]\{0,\}"\([-\._A-Za-z]\{1,\}\)"$/\1/p' "$file")
-	update=0
-	if test "$file" -nt "$bin"; then
-		echo "$file" -nt "$bin"
-	else
-		for h in $headers; do
-			if test "$h" -nt "$bin"; then
-				update=1
-				break
-			fi
-		done
-		case $file in
-			*config.h*) ./src/max_fork ;;
-		esac
-	fi
-	if test "$update"; then
-		grep -q -F 'pthread.h' "$file" && set -- $@ -pthread
-		grep -q -F 'omp.h' "$file" && set -- $@ -fopenmp
-		$compiler $@ "$file" -o "$bin" &&
-		echo $compiler -Wall -Wextra $@ "$file" -o "$bin" &&
-		/bin/cp -rf "$bin" "$scripts_dir/${bin##*/}"
-	fi
+		bin=../bin/${file%.*}
+		headers=$(sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]\{0,\}"\([-\._A-Za-z]\{1,\}\)"$/\1/p' "$file")
+		if test "$file" -nt "$bin"; then
+			update=1
+			grep -q -F config.h && ./src/max_fork
+			grep -q -F pthread.h && set -- $@ -pthread
+			grep -q -F omp.h && set -- $@ -fopenmp
+		else
+			for h in $headers; do
+				if test "$h" -nt "$bin"; then
+					update=1
+					break
+				fi
+			done
+			case $headers in *config.h*) ./src/max_fork ;; esac
+			case $headers in *pthread.h*) set -- $@ -pthread ;; esac
+			case $headers in *omp.h*) set -- $@ -fopenmp ;; esac
+		fi
+		if [ "$update" ]; then
+			$compiler $@ "$file" -o "$bin" &&
+				echo $compiler -Wall -Wextra $@ "$file" -o "$bin" &&
+				/bin/cp -rf "$bin" "$scripts_dir/${bin##*/}"
+		fi
 	} &
 done
 wait
