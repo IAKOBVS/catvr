@@ -34,6 +34,9 @@
 #endif /* !HAS_MEMMEM */
 
 static uint8_t g_mtable[256];
+#ifdef __OMP_H
+#	pragma omp threadprivate(g_mtable)
+#endif /* __OMP_H */
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
 

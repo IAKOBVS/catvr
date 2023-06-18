@@ -194,24 +194,6 @@ END:;
 	mmap_close(filep, filename, filesz, fd);
 }
 
-#define IF_EXCLUDED_REG_DO(filename, action)  \
-	do {                                  \
-		if ((filename)[0] == '.'      \
-		    && (filename)[1] == 'c'   \
-		    && (filename)[2] == 'l'   \
-		    && (filename)[3] == 'a'   \
-		    && (filename)[4] == 'n'   \
-		    && (filename)[5] == 'g'   \
-		    && (filename)[6] == '-'   \
-		    && (filename)[7] == 'f'   \
-		    && (filename)[8] == 'o'   \
-		    && (filename)[9] == 'r'   \
-		    && (filename)[10] == 'm'  \
-		    && (filename)[11] == 'a'  \
-		    && (filename)[12] == 't') \
-			action;               \
-	} while (0)
-
 /* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DIR_DO(filename, action)                 \
 	do {                                                 \
@@ -237,41 +219,66 @@ END:;
 			}                                    \
 	} while (0)
 
+#define IF_EXCLUDED_REG_DO(filename, action)  \
+	do {                                  \
+		if ((filename)[0] == '.'      \
+		    && (filename)[1] == 'c'   \
+		    && (filename)[2] == 'l'   \
+		    && (filename)[3] == 'a'   \
+		    && (filename)[4] == 'n'   \
+		    && (filename)[5] == 'g'   \
+		    && (filename)[6] == '-'   \
+		    && (filename)[7] == 'f'   \
+		    && (filename)[8] == 'o'   \
+		    && (filename)[9] == 'r'   \
+		    && (filename)[10] == 'm'  \
+		    && (filename)[11] == 'a'  \
+		    && (filename)[12] == 't') \
+			action;               \
+	} while (0)
+
 #define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                     \
 	do {                                                                                                     \
-		IF_EXCLUDED_REG_DO(ep->d_name, goto CONT);                                                       \
+		IF_EXCLUDED_REG_DO(ep->d_name, goto BREAK_FIND_FGREP_DO_REG__);                                  \
 		if (USE_LEN)                                                                                     \
 			FUNC_REG(needle, fulpath, needlelen, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 		else                                                                                             \
 			FUNC_REG(needle, fulpath, 0, 0);                                                         \
+BREAK_FIND_FGREP_DO_REG__:;                                                                                      \
 	} while (0)
 
 #define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                     \
 	do {                                                                                                             \
-		IF_EXCLUDED_DIR_DO(ep->d_name, goto CONT);                                                               \
+		IF_EXCLUDED_DIR_DO(ep->d_name, goto BREAK_FIND_FGREP_DO_DIR__);                                          \
 		FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
+BREAK_FIND_FGREP_DO_DIR__:;                                                                                              \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		switch (ep->d_type) {                                \
-		case DT_REG:                                         \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-			break;                                       \
-		case DT_DIR:                                         \
-			FIND_FGREP_DO_DIR(FUNC_SELF);                \
-		}
+	do {                                                        \
+		switch (ep->d_type) {                               \
+		case DT_REG:                                        \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+			break;                                      \
+		case DT_DIR:                                        \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
+			break;                                      \
+		}                                                   \
+	} while (0)
 
 #else
 
 #	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN) \
-		if (unlikely(stat(dir, &g_st)))                      \
-			continue;                                    \
-		if (S_ISREG(g_st.st_mode))                           \
-			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);        \
-		else if (S_ISDIR(g_st.st_mode))                      \
-			FIND_FGREP_DO_DIR(FUNC_SELF);
+	do {                                                        \
+		if (unlikely(stat(dir, &g_st)))                     \
+			continue;                                   \
+		if (S_ISREG(g_st.st_mode))                          \
+			FIND_FGREP_DO_REG(FUNC_REG, USE_LEN);       \
+		else if (S_ISDIR(g_st.st_mode))                     \
+			FIND_FGREP_DO_DIR(FUNC_SELF);               \
+	} while (0)
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
@@ -284,8 +291,7 @@ END:;
 		struct dirent *ep;                                                                    \
 		char fulpath[MAX_PATH_LEN];                                                           \
 		while ((ep = readdir(dp))) {                                                          \
-			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN)                                        \
-CONT:;                                                                                                \
+			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                       \
 		}                                                                                     \
 		closedir(dp);                                                                         \
 		return;                                                                               \
@@ -310,7 +316,7 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 	char numbuf[UINT_LEN];
 	char *numbufp;
 	unsigned int dgts;
-	if (memchr(p, 0, sz / 2))
+	if (memchr(p, 0, sz))
 		goto END;
 	for (unsigned int NL = 1;; ++NL) {
 #if !USE_ANSI_COLORS

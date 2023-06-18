@@ -19,10 +19,10 @@ for file in $(echo *.c); do
 	bin=../bin/${file%.*}
 	if test "$file" -nt "$bin"; then
 		grep -q -F 'pthread.h' "$file" && set -- $@ -pthread
+		grep -q -F 'omp.h' "$file" && set -- $@ -fopenmp
 		$compiler $@ "$file" -o "$bin" &&
-		echo "$file successfuly compiled!" &&
-		/bin/cp -rf "$bin" "$scripts_dir/${bin##*/}" &&
-		echo "$bin successfuly copied to $scripts_dir!"
+		echo $compiler -Wall -Wextra $@ "$file" -o "$bin" &&
+		/bin/cp -rf "$bin" "$scripts_dir/${bin##*/}"
 	fi
 	} &
 done
