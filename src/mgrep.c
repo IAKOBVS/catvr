@@ -139,8 +139,6 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	unsigned char *p = mmap_open(filename, &sz, &fd);
 	if (unlikely(sz == MAX_FILE_SZ))
 		return;
-	if (unlikely(!sz))
-		return;
 	if (unlikely(p == MAP_FAILED)) {
 		fgrep_err("Mmap failed", filename);
 		exit(1);
@@ -305,8 +303,6 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 	size_t sz;
 	unsigned char *p = mmap_open(filename, &sz, &fd);
 	if (unlikely(sz >= MAX_FILE_SZ))
-		return;
-	if (unlikely(!sz))
 		return;
 	if (unlikely(p == MAP_FAILED))
 		return;
