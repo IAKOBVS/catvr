@@ -24,8 +24,6 @@
 #define free_shm()
 
 static char g_ln[MAX_LINE_LEN + 1];
-static size_t g_lnlen;
-static char *g_found;
 
 /* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DO(filename, action)         \
@@ -45,6 +43,9 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 		return;
 	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
+	char *g_found;
+	size_t g_lnlen;
+
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
@@ -65,15 +66,13 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 
 #define DO_DIR                                                                                                \
 	do {                                                                                                  \
-		IF_EXCLUDED_DO(ep->d_name, goto CONT);                                                        \
+		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                                              \
 		FORK_AND_WAIT(find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen)); \
+DO_DIR_BREAK__:;                                                                                              \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
 	while ((ep = readdir(dp))) {
-#	if DEBUG
-		printf("d->name: %s\n", ep->d_name);
-#	endif /* DEBUG */
 		switch (ep->d_type) {
 		case DT_REG:
 			DO_REG;
@@ -90,10 +89,6 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, c
 	else if (S_ISDIR(g_st.st_mode))
 		DO_DIR;
 #endif /* _DIRENT_HAVE_D_TYPE */
-#if DEBUG
-		printf("entries: %s\n", ep->d_name);
-#endif /* DEBUG */
-CONT:;
 	}
 	closedir(dp);
 }

@@ -373,9 +373,6 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 	} while (0)
 
 	while ((ep = readdir(dp))) {
-#if DEBUG
-		printf("d->name: %s\n", ep->d_name);
-#endif /* DEBUG */
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
@@ -393,9 +390,6 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 		else if (S_ISDIR(g_st.st_mode))
 			FIND_CAT_DO_DIR;
 #endif /* _DIRENT_HAVE_D_TYPE */
-#if DEBUG
-		printf("entries: %s\n", ep->d_name);
-#endif /* DEBUG */
 CONT:;
 	}
 	closedir(dp);
