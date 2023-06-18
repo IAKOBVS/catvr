@@ -424,11 +424,11 @@ int main(int argc, char **argv)
 	const size_t needlelen = strlen(NEEDLE_ARG);
 	init_memmem(NEEDLE_ARG, needlelen);
 	if (argc == 2)
-		goto GET_CWD;
+		goto GREP_ALL;
 	switch (DIR_ARG[0]) {
 	case '.':
 		if (unlikely(DIR_ARG[1] == '\0'))
-			goto GET_CWD;
+			goto GREP_ALL;
 	/* FALLTHROUGH */
 	default: {
 		struct stat st;
@@ -446,7 +446,7 @@ int main(int argc, char **argv)
 		}
 	} break;
 	case '\0':
-GET_CWD:;
+GREP_ALL:;
 		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
 		break;
 	}
