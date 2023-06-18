@@ -17,7 +17,21 @@ cd src || return
 for file in $(echo *.c); do
 	{
 	bin=../bin/${file%.*}
+	headers=$(sed -n 's/^[[:space:]]*#[[:space:]]*include[[:space:]]\{0,\}"\([-\._A-Za-z]\{1,\}\)"$/\1/p' "$file")
+	update=0
 	if test "$file" -nt "$bin"; then
+		echo $file -nt $bin
+		update=1
+	else
+		for h in $headers; do
+			if test "$h" -nt "$bin"; then
+				echo $h -nt $bin
+				update=1
+				break
+			fi
+		done
+	fi
+	if test "$update"; then
 		grep -q -F 'pthread.h' "$file" && set -- $@ -pthread
 		grep -q -F 'omp.h' "$file" && set -- $@ -fopenmp
 		$compiler $@ "$file" -o "$bin" &&
