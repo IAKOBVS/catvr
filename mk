@@ -2,7 +2,7 @@
 scripts_dir=$HOME/.local/bin/scripts
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
-	echo 'Set a directory in which to put the executable'
+	echo 'Set a directory in which to store the executable'
 fi
 if [ -f /usr/bin/gcc ]; then
 	compiler=gcc
