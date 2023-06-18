@@ -23,7 +23,7 @@
 #define init_shm()
 #define free_shm()
 
-static char g_ln[MAX_LINE_LEN + 1];
+static char g_ln[MAX_LINE_LEN];
 
 /* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DO(filename, action)         \
