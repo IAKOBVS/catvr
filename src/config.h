@@ -8,4 +8,4 @@
 #define USE_ANSI_COLORS 1
 #define MAX_FORKS 6
 
-#endif /* CONFIG_DEF_H */
+#endif /* CONFIG_DEF_H */\n

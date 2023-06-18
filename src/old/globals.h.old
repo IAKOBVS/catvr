@@ -22,4 +22,4 @@ static struct stat g_st;
 static int g_c;
 static int g_first_match;
 
-#endif /* GLOBALS_DEF_H */
+#endif /* GLOBALS_DEF_H */\n

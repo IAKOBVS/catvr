@@ -287,4 +287,4 @@ static unsigned char g_table[256] = {
 
 };
 
-#endif /* GLOBAL_TABLE_DEF_H */
+#endif /* GLOBAL_TABLE_DEF_H */\n

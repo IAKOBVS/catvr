@@ -16,7 +16,7 @@
 
 #include "g_memmem.h"
 #include "librgrep.h"
-#include "use_unlocked_io.h"
+#include "unlocked_io.h"
 /* #include "fork.h" */
 
 #define FORK_AND_WAIT(x) (x)
@@ -147,4 +147,4 @@ dotdir:
 	find(dir, dlen, ptn, ptnlen);
 	free_shm();
 	return 0;
-}
+}\n

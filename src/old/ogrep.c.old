@@ -18,7 +18,7 @@
 #include "g_memmem.h"
 #include "global_table_256.h"
 #include "librgrep.h"
-#include "use_unlocked_io.h"
+#include "unlocked_io.h"
 
 #include <omp.h>
 
@@ -480,4 +480,4 @@ GET_CWD:;
 		break;
 	}
 	free_shm();
-}
+}\n

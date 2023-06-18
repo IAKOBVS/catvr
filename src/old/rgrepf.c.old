@@ -15,7 +15,7 @@
 #include "g_memmem.h"
 #include "globals.h"
 #include "librgrep.h"
-#include "use_unlocked_io.h"
+#include "unlocked_io.h"
 
 /* #define FORK_AND_WAIT(x) (x) */
 /* #define init_shm() */
@@ -381,4 +381,4 @@ GET_CWD:;
 	}
 	free_shm();
 	return 0;
-}
+}\n
