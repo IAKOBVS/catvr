@@ -78,21 +78,21 @@
 
 #else
 
-#	define FGREP_PRINT                                                        \
-		do {                                                               \
-			COUNT_NL(NL);                                              \
-			numbufp = numbuf;                                          \
-			itoa_uint_pos(numbufp, NL, 10, dgts);                      \
-			PRINT_LITERAL(ANSI_RED);                                   \
-			fwrite(filename, 1, flen, stdout);                         \
-			PRINT_LITERAL(ANSI_RESET ":");                             \
-			PRINT_LITERAL(ANSI_GREEN);                                 \
-			fwrite(numbufp, 1, dgts, stdout);                          \
-			PRINT_LITERAL(ANSI_RESET ":");                             \
-			fwrite(p, 1, pp - p, stdout);                              \
-			PRINT_LITERAL(ANSI_RED);                                   \
-			fwrite(pp, 1, nlen, stdout);                          \
-			PRINT_LITERAL(ANSI_RESET);                                 \
+#	define FGREP_PRINT                                              \
+		do {                                                     \
+			COUNT_NL(NL);                                    \
+			numbufp = numbuf;                                \
+			itoa_uint_pos(numbufp, NL, 10, dgts);            \
+			PRINT_LITERAL(ANSI_RED);                         \
+			fwrite(filename, 1, flen, stdout);               \
+			PRINT_LITERAL(ANSI_RESET ":");                   \
+			PRINT_LITERAL(ANSI_GREEN);                       \
+			fwrite(numbufp, 1, dgts, stdout);                \
+			PRINT_LITERAL(ANSI_RESET ":");                   \
+			fwrite(p, 1, pp - p, stdout);                    \
+			PRINT_LITERAL(ANSI_RED);                         \
+			fwrite(pp, 1, nlen, stdout);                     \
+			PRINT_LITERAL(ANSI_RESET);                       \
 			fwrite(pp + nlen, 1, ppp - (pp + nlen), stdout); \
 		} while (0)
 
@@ -310,7 +310,7 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 
 #else
 
-#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)   \
+#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)  \
 		do {                                                  \
 			struct stat st;                               \
 			if (unlikely(stat(dir, &st)))                 \
