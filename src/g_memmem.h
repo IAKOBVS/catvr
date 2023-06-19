@@ -99,4 +99,4 @@ static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
 #undef hash2
 #undef reset_table
 
-#endif /* G_MEMMEM_DEF_H */\n
+#endif /* G_MEMMEM_DEF_H */

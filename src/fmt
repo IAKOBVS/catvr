@@ -1,2 +1,2 @@
 #!/bin/sh
-clang-format -i --style=file:.clang-format -- *.c *.h\n
+clang-format -i --style=file:.clang-format -- *.c *.h

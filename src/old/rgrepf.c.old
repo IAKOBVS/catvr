@@ -381,4 +381,4 @@ GET_CWD:;
 	}
 	free_shm();
 	return 0;
-}\n
+}

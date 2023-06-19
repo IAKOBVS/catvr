@@ -147,4 +147,4 @@ dotdir:
 	find(dir, dlen, ptn, ptnlen);
 	free_shm();
 	return 0;
-}\n
+}

@@ -4,4 +4,4 @@ if n=$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || getconf _NPRO
 	echo "$(sed "s/#define MAX_FORKS[[:space:]]*.*[[:space:]]*$/#define MAX_FORKS $n/" $config_file)" > $config_file
 else
 	echo "Can't get number of CPU cores!"
-fi\n
+fi

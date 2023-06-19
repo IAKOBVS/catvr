@@ -480,4 +480,4 @@ GET_CWD:;
 		break;
 	}
 	free_shm();
-}\n
+}

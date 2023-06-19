@@ -69,4 +69,4 @@ static INLINE void free_shm()
 		}                                       \
 	} while (0)
 
-#endif /* FORK_DEF_H */\n
+#endif /* FORK_DEF_H */

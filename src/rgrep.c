@@ -484,4 +484,4 @@ GREP_ALL:;
 		break;
 	}
 	free_shm();
-}\n
+}

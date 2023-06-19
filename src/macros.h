@@ -379,4 +379,4 @@ case 30:                               \
 case 31:                               \
 case 127:
 
-#endif /* MACROS_DEF_H */\n
+#endif /* MACROS_DEF_H */

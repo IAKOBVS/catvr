@@ -54,4 +54,4 @@ static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char
 #endif /* HAS_STPCPY */
 }
 
-#endif /* LIBGREP_DEF_H */\n
+#endif /* LIBGREP_DEF_H */
