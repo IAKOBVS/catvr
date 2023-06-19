@@ -82,11 +82,12 @@ DO_DIR_BREAK__:;                                                                
 			break;
 		}
 #else
-	if (unlikely(stat(dir, &g_st)))
+	struct stat st;
+	if (unlikely(stat(dir, &st)))
 		continue;
-	if (S_ISREG(g_st.st_mode))
+	if (S_ISREG(st.st_mode))
 		DO_REG;
-	else if (S_ISDIR(g_st.st_mode))
+	else if (S_ISDIR(st.st_mode))
 		DO_DIR;
 #endif /* _DIRENT_HAVE_D_TYPE */
 	}

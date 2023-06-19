@@ -33,6 +33,8 @@
 #	define free_shm()
 #endif /* USE_FORK */
 
+char fulpath[MAX_PATH_LEN];
+
 #undef itoa_uint_pos
 #define itoa_uint_pos(s, n, base, digits)             \
 	do {                                          \
@@ -91,9 +93,9 @@
 			PRINT_LITERAL(ANSI_RESET ":");                             \
 			fwrite(p, 1, pp - p, stdout);                              \
 			PRINT_LITERAL(ANSI_RED);                                   \
-			fwrite(pp, 1, needlelen, stdout);                          \
+			fwrite(pp, 1, nlen, stdout);                          \
 			PRINT_LITERAL(ANSI_RESET);                                 \
-			fwrite(pp + needlelen, 1, ppp - (pp + needlelen), stdout); \
+			fwrite(pp + nlen, 1, ppp - (pp + nlen), stdout); \
 		} while (0)
 
 #endif
@@ -101,7 +103,7 @@
 static void fgrep_err(const char *msg, const char *filename)
 {
 	perror("");
-	fprintf(stderr, PROG_NAME ":%s:%s", msg, filename);
+	fprintf(stderr, PROG_NAME ":%s:%s\n", msg, filename);
 }
 
 static INLINE void *mmap_open(const char *filename, size_t *filesz, int *fd)
@@ -132,7 +134,7 @@ static INLINE void mmap_close(void *p, const char *filename, size_t filesz, int 
 	}
 }
 
-static INLINE void fgrep(const char *needle, const char *filename, const size_t needlelen, const size_t flen)
+static INLINE void fgrep(const char *needle, const char *filename, const size_t nlen, const size_t flen)
 {
 	int fd;
 	size_t sz;
@@ -140,8 +142,11 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	if (unlikely(sz == MAX_FILE_SZ))
 		return;
 	if (unlikely(p == MAP_FAILED)) {
+		if (!sz)
+			return;
 		fgrep_err("Mmap failed", filename);
-		exit(1);
+		_exit(1);
+		return;
 	}
 	const size_t filesz = sz;
 	unsigned char *const filep = p;
@@ -154,7 +159,7 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	unsigned char *pp;
 	unsigned char *ppp;
 	unsigned char *start;
-	while ((pp = (unsigned char *)g_memmem(p, sz, needle, needlelen))) {
+	while ((pp = (unsigned char *)g_memmem(p, sz, needle, nlen))) {
 		start = p;
 		p = pp;
 		while (p != filep) {
@@ -168,7 +173,7 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 			--p;
 		}
 BREAK_FOR1:
-		ppp = pp + needlelen;
+		ppp = pp + nlen;
 		for (;;) {
 			if (unlikely(ppp == pend)) {
 				FGREP_PRINT;
@@ -274,21 +279,21 @@ END:;
 		}                                                      \
 	} while (0)
 
-#define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                     \
-	do {                                                                                                     \
-		IF_EXCLUDED_REG_GOTO(ep->d_name, goto BREAK_FIND_FGREP_DO_REG__);                                \
-		if (USE_LEN)                                                                                     \
-			FUNC_REG(needle, fulpath, needlelen, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-		else                                                                                             \
-			FUNC_REG(needle, fulpath, 0, 0);                                                         \
-BREAK_FIND_FGREP_DO_REG__:;                                                                                      \
+#define FIND_FGREP_DO_REG(FUNC_REG, USE_LEN)                                                                \
+	do {                                                                                                \
+		IF_EXCLUDED_REG_GOTO(ep->d_name, goto BREAK_FIND_FGREP_DO_REG__);                           \
+		if (USE_LEN)                                                                                \
+			FUNC_REG(needle, fulpath, nlen, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+		else                                                                                        \
+			FUNC_REG(needle, fulpath, 0, 0);                                                    \
+BREAK_FIND_FGREP_DO_REG__:;                                                                                 \
 	} while (0)
 
-#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                     \
-	do {                                                                                                             \
-		IF_EXCLUDED_DIR_GOTO(ep->d_name, goto BREAK_FIND_FGREP_DO_DIR__);                                        \
-		FORK_AND_WAIT(FUNC_SELF(needle, needlelen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
-BREAK_FIND_FGREP_DO_DIR__:;                                                                                              \
+#define FIND_FGREP_DO_DIR(FUNC_SELF)                                                                                \
+	do {                                                                                                        \
+		IF_EXCLUDED_DIR_GOTO(ep->d_name, goto BREAK_FIND_FGREP_DO_DIR__);                                   \
+		FORK_AND_WAIT(FUNC_SELF(needle, nlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath)); \
+BREAK_FIND_FGREP_DO_DIR__:;                                                                                         \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -307,11 +312,12 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 
 #else
 
-#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)  \
+#	define IF_DIR_RECUR_IF_REG_DO(FUNC_SELF, FUNC_REG, USE_LEN)   \
 		do {                                                  \
-			if (unlikely(stat(dir, &g_st)))               \
+			struct stat st;                               \
+			if (unlikely(stat(dir, &st)))                 \
 				continue;                             \
-			if (S_ISREG(g_st.st_mode))                    \
+			if (S_ISREG(st.st_mode))                      \
 				FIND_FGREP_DO_REG(FUNC_REG, USE_LEN); \
 			else if (S_ISDIR(g_st.st_mode))               \
 				FIND_FGREP_DO_DIR(FUNC_SELF);         \
@@ -319,19 +325,18 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-#define DEF_FIND_T(F, DO, USE_LEN)                                                                    \
-	static void F(const char *needle, const size_t needlelen, const char *dir, const size_t dlen) \
-	{                                                                                             \
-		DIR *dp = opendir(dir);                                                               \
-		if (unlikely(!dp))                                                                    \
-			return;                                                                       \
-		struct dirent *ep;                                                                    \
-		char fulpath[MAX_PATH_LEN];                                                           \
-		while ((ep = readdir(dp))) {                                                          \
-			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                       \
-		}                                                                                     \
-		closedir(dp);                                                                         \
-		return;                                                                               \
+#define DEF_FIND_T(F, DO, USE_LEN)                                                               \
+	static void F(const char *needle, const size_t nlen, const char *dir, const size_t dlen) \
+	{                                                                                        \
+		DIR *dp = opendir(dir);                                                          \
+		if (unlikely(!dp))                                                               \
+			return;                                                                  \
+		struct dirent *ep;                                                               \
+		while ((ep = readdir(dp))) {                                                     \
+			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                  \
+		}                                                                                \
+		closedir(dp);                                                                    \
+		return;                                                                          \
 	}
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
@@ -397,7 +402,6 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 	if (unlikely(!dp))
 		return;
 	struct dirent *RESTRICT ep;
-	char fulpath[MAX_PATH_LEN];
 
 #define FIND_CAT_DO_REG                                                          \
 	do {                                                                     \
@@ -454,8 +458,8 @@ int main(int argc, char **argv)
 		find_cat(".", 1);
 		return 1;
 	}
-	const size_t needlelen = strlen(NEEDLE_ARG);
-	init_memmem(NEEDLE_ARG, needlelen);
+	const size_t nlen = strlen(NEEDLE_ARG);
+	init_memmem(NEEDLE_ARG, nlen);
 	if (argc == 2)
 		goto GREP_ALL;
 	switch (DIR_ARG[0]) {
@@ -470,9 +474,9 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (unlikely(S_ISREG(st.st_mode))) {
-			fgrep(NEEDLE_ARG, DIR_ARG, needlelen, strlen(DIR_ARG));
+			fgrep(NEEDLE_ARG, DIR_ARG, nlen, strlen(DIR_ARG));
 		} else if (S_ISDIR(st.st_mode)) {
-			find_fgrep(NEEDLE_ARG, needlelen, DIR_ARG, strlen(DIR_ARG));
+			find_fgrep(NEEDLE_ARG, nlen, DIR_ARG, strlen(DIR_ARG));
 		} else {
 			no_such_file(DIR_ARG);
 			return 1;
@@ -480,7 +484,7 @@ int main(int argc, char **argv)
 	} break;
 	case '\0':
 GREP_ALL:;
-		find_fgrep(NEEDLE_ARG, needlelen, ".", 1);
+		find_fgrep(NEEDLE_ARG, nlen, ".", 1);
 		break;
 	}
 	free_shm();
