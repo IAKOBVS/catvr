@@ -33,8 +33,6 @@
 #	define free_shm()
 #endif /* USE_FORK */
 
-char fulpath[MAX_PATH_LEN];
-
 #undef itoa_uint_pos
 #define itoa_uint_pos(s, n, base, digits)             \
 	do {                                          \
@@ -331,6 +329,7 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 		DIR *dp = opendir(dir);                                                          \
 		if (unlikely(!dp))                                                               \
 			return;                                                                  \
+		char fulpath[MAX_PATH_LEN];                                                      \
 		struct dirent *ep;                                                               \
 		while ((ep = readdir(dp))) {                                                     \
 			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                  \
@@ -402,6 +401,7 @@ static void find_cat(const char *RESTRICT dir, const size_t dlen)
 	if (unlikely(!dp))
 		return;
 	struct dirent *RESTRICT ep;
+	char fulpath[MAX_PATH_LEN];
 
 #define FIND_CAT_DO_REG                                                          \
 	do {                                                                     \
