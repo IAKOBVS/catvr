@@ -4,10 +4,6 @@ rgrep.c
 rfind.c
 '
 scripts_dir=$HOME/.local/bin/scripts
-if [ ! -d "$scripts_dir" ]; then
-	echo "$scripts_dir does not exist!"
-	echo 'Set a directory in which to store the executable'
-fi
 if [ -f /usr/bin/gcc ]; then
 	compiler=gcc
 elif [ -f /usr/bin/clang ]; then
@@ -17,7 +13,10 @@ else
 	return 1
 fi
 mkdir -p bin
-cd src || exit
+cd src || {
+	echo "Can't cd to ./src"
+	exit
+}
 for cfile in $(echo *.c); do
 	{
 		case $main in
@@ -38,3 +37,9 @@ for m in $main; do
 	} &
 done
 wait
+if [ ! -d "$scripts_dir" ]; then
+	echo "$scripts_dir does not exist!"
+	echo 'Set a directory in which to store the executable'
+	exit
+fi
+cp ../bin/* "$scripts_dir"
