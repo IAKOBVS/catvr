@@ -90,6 +90,47 @@ DO_DIR_BREAK__:;                                                                
 	closedir(dp);
 }
 
+static void findall(const char *RESTRICT dir, const size_t dlen)
+{
+	DIR *RESTRICT dp = opendir(dir);
+	if (unlikely(!dp))
+		return;
+	struct dirent *RESTRICT ep;
+	char fulpath[MAX_PATH_LEN];
+
+#define DO_REG_ALL       \
+	puts(ep->d_name)
+
+#define DO_DIR_ALL                                                                   \
+	do {                                                                         \
+		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                     \
+		findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+DO_DIR_BREAK__:;                                                                     \
+	} while (0)
+
+#ifdef _DIRENT_HAVE_D_TYPE
+	while ((ep = readdir(dp))) {
+		switch (ep->d_type) {
+		case DT_REG:
+			DO_REG_ALL;
+			break;
+		case DT_DIR:
+			DO_DIR_ALL;
+			break;
+		}
+#else
+	struct stat st;
+	if (unlikely(stat(dir, &st)))
+		continue;
+	if (S_ISREG(st.st_mode))
+		DO_REG;
+	else if (S_ISDIR(st.st_mode))
+		DO_DIR;
+#endif /* _DIRENT_HAVE_D_TYPE */
+	}
+	closedir(dp);
+}
+
 static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 {
 	const char *const d = dst;
@@ -109,6 +150,14 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 	return dst - d;
 }
 
+#define IF_FIND_ALL                       \
+	do {                              \
+		if (argv[1][0] == '\0') { \
+			findall(".", 1);  \
+			return 1;         \
+		}                         \
+	} while (0)
+
 int main(int argc, char **argv)
 {
 	char ptnbuf[MAX_NEEDLE_LEN + 1];
@@ -118,18 +167,18 @@ int main(int argc, char **argv)
 	size_t dlen;
 	switch (argc) {
 	case 1:
-		ptn = "";
-		ptnlen = 1;
-		goto dotdir;
+		findall(".", 1);
+		return 1;
 		break;
 	case 2:
+		IF_FIND_ALL;
 		ptnlen = init_ptn(ptnbuf, argv[1]);
 		ptn = ptnbuf;
-dotdir:
 		dir = ".";
 		dlen = 1;
 		break;
 	case 3:
+		IF_FIND_ALL;
 		ptnlen = init_ptn(ptnbuf, argv[1]);
 		ptn = ptnbuf;
 		dir = argv[2];
