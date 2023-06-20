@@ -40,14 +40,14 @@ static uint8_t g_mtable[256];
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
 
-static void init_memmem(const char *ne, const int nlen)
+static void init_memmem(const char *RESTRICT ne, const int nlen)
 {
 	memset(g_mtable, 0, sizeof(g_mtable));
 	for (int i = 1; i < nlen - 1; i++)
 		g_mtable[hash2(ne + i)] = i;
 }
 
-static char *g_memmem(const void *h, size_t hlen, const void *n, size_t nlen)
+static char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen)
 {
 	if (hlen < nlen)
 		return NULL;
