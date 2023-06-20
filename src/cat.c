@@ -29,19 +29,23 @@ void cat(const char *RESTRICT filename, const size_t flen)
 #if !USE_ANSI_COLORS
 		fwrite(filename, 1, flen, stdout);
 		putchar(':');
+#	ifdef USE_LINE_NUMBER
 		numbufp = numbuf;
 		itoa_uint_pos(numbufp, NL, 10, dgts);
 		fwrite(numbufp, 1, dgts, stdout);
 		putchar(':');
+#	endif /* USE_LINE_NUMBER */
 #else
 		PRINT_LITERAL(ANSI_RED);
 		fwrite(filename, 1, flen, stdout);
 		PRINT_LITERAL(ANSI_RESET ":");
 		PRINT_LITERAL(ANSI_GREEN);
+#	ifdef USE_LINE_NUMBER
 		numbufp = numbuf;
 		itoa_uint_pos(numbufp, NL, 10, dgts);
 		fwrite(numbufp, 1, dgts, stdout);
 		PRINT_LITERAL(ANSI_RESET ":");
+#	endif /* USE_LINE_NUMBER */
 #endif
 		for (;;) {
 			if (unlikely(p == pend)) {

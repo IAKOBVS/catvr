@@ -11,7 +11,7 @@
 
 void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
 
-#define COUNTNL(NL)                                                 \
+#define COUNT_LINE_NUM(NL)                                          \
 	do {                                                        \
 		for (const unsigned char *tmp = p; tmp != linep;) { \
 			switch (g_table[*tmp--]) {                  \
@@ -25,25 +25,43 @@ void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const siz
 		linep = p;                                          \
 	} while (0)
 
-#if !USE_ANSI_COLORS
+#if USE_LINE_NUMBER
 
-#	define PRINTLN                                       \
+#	define GENERATE_LINE_NUM                             \
 		do {                                          \
-			COUNTNL(NL);                          \
+			COUNT_LINE_NUM(NL);                   \
 			numbufp = numbuf;                     \
 			itoa_uint_pos(numbufp, NL, 10, dgts); \
-			fwrite(filename, 1, flen, stdout);    \
-			putchar(':');                         \
-			fwrite(numbufp, 1, dgts, stdout);     \
-			putchar(':');                         \
-			fwrite(p, 1, ppp - p, stdout);        \
+		} while (0)
+
+#	define PRINT_LINE_NUM \
+		fwrite(numbufp, 1, dgts, stdout)
+
+#else
+
+#	define GENERATE_LINE_NUM \
+#		define PRINT_LINE_NUM
+
+#endif /* USE_LINE_NUMBER */
+
+#if !USE_ANSI_COLORS
+
+#	define PRINTLN                                    \
+		do {                                       \
+			GENERATE_LINE_NUM;                 \
+			fwrite(filename, 1, flen, stdout); \
+			putchar(':');                      \
+			fwrite(numbufp, 1, dgts, stdout);  \
+			PRINT_LINE_NUM;                    \
+			putchar(':');                      \
+			fwrite(p, 1, ppp - p, stdout);     \
 		} while (0)
 
 #else
 
 #	define PRINTLN                                                  \
 		do {                                                     \
-			COUNTNL(NL);                                     \
+			COUNT_LINE_NUM(NL);                              \
 			numbufp = numbuf;                                \
 			itoa_uint_pos(numbufp, NL, 10, dgts);            \
 			PRINT_LITERAL(ANSI_RED);                         \
