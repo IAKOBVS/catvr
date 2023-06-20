@@ -25,16 +25,16 @@ for cfile in $(echo *.c); do
 		esac
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
-			$compiler "$cfile" -c -o "$base.o" $@
-			echo $compiler "$cfile" -c -o "$base.o" $@
+			$compiler -Wall -Wextra $@ "$cfile" -c -o "$base.o"
+			echo $compiler $@ "$cfile" -c -o "$base.o"
 		fi
 	} &
 done
 wait
 for m in $main; do
 	{
-		$compiler "$m" -o "../bin/${m%.*}" $@ -Wall -Wextra ./*.o
-		echo "$compiler $m -o ${m%.*} $@ -Wall -Wextra" ./*.o
+		$compiler -Wall -Wextra $@ "$m" -o "../bin/${m%.*}" ./*.o
+		echo "$compiler $@ $m -o ${m%.*} -Wall -Wextra" ./*.o
 	} &
 done
 wait
