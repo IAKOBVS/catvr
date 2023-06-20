@@ -319,19 +319,19 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-#define DEF_FIND_T(F, DO, USE_LEN)                                                               \
-	static void F(const char *needle, const size_t nlen, const char *dir, const size_t dlen) \
-	{                                                                                        \
-		DIR *RESTRICT dp = opendir(dir);                                                 \
-		if (unlikely(!dp))                                                               \
-			return;                                                                  \
-		char fulpath[MAX_PATH_LEN];                                                      \
-		struct dirent *RESTRICT ep;                                                      \
-		while ((ep = readdir(dp))) {                                                     \
-			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                  \
-		}                                                                                \
-		closedir(dp);                                                                    \
-		return;                                                                          \
+#define DEF_FIND_T(F, DO, USE_LEN)                                                                                 \
+	static void F(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen) \
+	{                                                                                                          \
+		DIR *RESTRICT dp = opendir(dir);                                                                   \
+		if (unlikely(!dp))                                                                                 \
+			return;                                                                                    \
+		char fulpath[MAX_PATH_LEN];                                                                        \
+		struct dirent *RESTRICT ep;                                                                        \
+		while ((ep = readdir(dp))) {                                                                       \
+			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                                    \
+		}                                                                                                  \
+		closedir(dp);                                                                                      \
+		return;                                                                                            \
 	}
 
 DEF_FIND_T(find_fgrep, fgrep, 1)
