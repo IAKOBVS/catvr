@@ -7,12 +7,12 @@
 #include "g_memmem.h"
 #include "grep.h"
 
-static void stat_fail(const char *entry)
+NOINLINE void stat_fail(const char *entry)
 {
 	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);
 }
 
-static void no_such_file(const char *entry)
+NOINLINE void no_such_file(const char *entry)
 {
 	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry);
 }

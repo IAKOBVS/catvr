@@ -22,7 +22,7 @@ char *appendp(char *path, const char *dir, size_t dlen, const char *filename)
 #endif /* HAS_STPCPY */
 }
 
-void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename)
+NOINLINE void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename)
 {
 	perror("");
 	fprintf(stderr, "%s:%s\n", msg, filename);
