@@ -18,7 +18,7 @@
 #endif
 
 #ifdef HAS_FWRITE_UNLOCKED
-#	define fwrite(s, sz, N, fp)	    fwrite_unlocked(s, sz, N, fp)
+#	define fwrite(s, sz, N, fp) fwrite_unlocked(s, sz, N, fp)
 #else
 #	define flockfile(fp)
 #	define funlockfile(fp)

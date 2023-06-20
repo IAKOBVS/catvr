@@ -98,14 +98,14 @@ static void find_all(const char *RESTRICT dir, const size_t dlen)
 	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
 
-#define DO_REG_ALL       \
+#define DO_REG_ALL \
 	puts(ep->d_name)
 
-#define DO_DIR_ALL                                                                   \
-	do {                                                                         \
-		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                     \
+#define DO_DIR_ALL                                                                    \
+	do {                                                                          \
+		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                      \
 		find_all(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-DO_DIR_BREAK__:;                                                                     \
+DO_DIR_BREAK__:;                                                                      \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
@@ -153,7 +153,7 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 #define IF_FIND_ALL                       \
 	do {                              \
 		if (argv[1][0] == '\0') { \
-			find_all(".", 1);  \
+			find_all(".", 1); \
 			return 1;         \
 		}                         \
 	} while (0)

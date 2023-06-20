@@ -102,11 +102,11 @@
 #endif /* __GNUC__ || __clang__ || _MSC_VER */
 
 #if defined(__GNUC__) || defined(__clang__)
-    #define NOINLINE __attribute__((noinline))
+#	define NOINLINE __attribute__((noinline))
 #elif defined(_MSC_VER)
-    #define NOINLINE __declspec(noinline)
+#	define NOINLINE __declspec(noinline)
 #else
-    #define NOINLINE
+#	define NOINLINE
 #endif
 
 #if (defined(__GNUC__) && (__GNUC__ >= 3)) || (defined(__clang__) && __has_builtin(__builtin_expect))
