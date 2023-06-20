@@ -19,15 +19,9 @@
 
 #ifdef HAS_FWRITE_UNLOCKED
 #	define fwrite(s, sz, N, fp)	    fwrite_unlocked(s, sz, N, fp)
-#	define fwrite_locked(s, sz, N, fp) fwrite(s, sz, N, fp)
 #else
-#	define fwrite_locked(s, sz, N, fp) fwrite(s, sz, N, fp)
 #	define flockfile(fp)
 #	define funlockfile(fp)
 #endif
-
-#ifndef HAS_MEMMEM
-#	define memmem(haystack, haystacklen, needle, needlelen) strstr(haystack, needle)
-#endif /* !HAS_MEMMEM */
 
 #endif /* UNLOCKED_IO_DEF_H */
