@@ -62,7 +62,7 @@
 			return;                                                                                      \
 		char fulpath[MAX_PATH_LEN];                                                                          \
 		DECLARE_STAT;                                                                                        \
-		for (struct dirent *RESTRICT ep; (ep = readdir(dp)); ) {                                             \
+		for (struct dirent * RESTRICT ep; (ep = readdir(dp));) {                                             \
 			GREP_IF_REG(FUNC_SELF, FUNC_REG);                                                            \
 CONT:;                                                                                                               \
 		}                                                                                                    \

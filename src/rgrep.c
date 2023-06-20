@@ -50,11 +50,12 @@ int main(int argc, char **argv)
 			stat_fail(DIR_ARG);
 			return 1;
 		}
-		if (unlikely(S_ISREG(st.st_mode)))
+		if (unlikely(S_ISREG(st.st_mode))) {
 			fgrep(NEEDLE_ARG, DIR_ARG, nlen, strlen(DIR_ARG));
-		else if (S_ISDIR(st.st_mode))
+		} else if (S_ISDIR(st.st_mode)) {
+
 			find_fgrep(NEEDLE_ARG, nlen, DIR_ARG, strlen(DIR_ARG));
-		else {
+		} else {
 			no_such_file(DIR_ARG);
 			return 1;
 		}
