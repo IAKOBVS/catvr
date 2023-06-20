@@ -36,7 +36,7 @@ static char g_ln[MAX_LINE_LEN];
 			}                        \
 	} while (0)
 
-static void find(const char *RESTRICT dir, const size_t dlen, const char *ptn, const size_t ptnlen)
+static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRICT ptn, const size_t ptnlen)
 {
 	DIR *RESTRICT dp = opendir(dir);
 	if (unlikely(!dp))
@@ -94,7 +94,7 @@ DO_DIR_BREAK__:;                                                                
 	closedir(dp);
 }
 
-static size_t init_ptn(char *dst, const char *src)
+static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 {
 	const char *const d = dst;
 	for (;; ++src, ++dst) {

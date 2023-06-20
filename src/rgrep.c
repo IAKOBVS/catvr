@@ -322,7 +322,7 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 #define DEF_FIND_T(F, DO, USE_LEN)                                                               \
 	static void F(const char *needle, const size_t nlen, const char *dir, const size_t dlen) \
 	{                                                                                        \
-		DIR *dp = opendir(dir);                                                          \
+		DIR *RESTRICT dp = opendir(dir);                                                 \
 		if (unlikely(!dp))                                                               \
 			return;                                                                  \
 		char fulpath[MAX_PATH_LEN];                                                      \
