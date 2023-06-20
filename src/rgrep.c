@@ -97,13 +97,13 @@
 
 #endif
 
-static void fgrep_err(const char *msg, const char *filename)
+static void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename)
 {
 	perror("");
 	fprintf(stderr, PROG_NAME ":%s:%s\n", msg, filename);
 }
 
-static INLINE void *mmap_open(const char *filename, size_t *filesz, int *fd)
+static INLINE void *mmap_open(const char *RESTRICT filename, size_t *RESTRICT filesz, int *RESTRICT fd)
 {
 	*fd = open(filename, O_RDONLY, S_IRUSR);
 	if (unlikely(*fd < 0)) {
@@ -119,7 +119,7 @@ static INLINE void *mmap_open(const char *filename, size_t *filesz, int *fd)
 	return mmap(NULL, *filesz, PROT_READ, MAP_PRIVATE, *fd, 0);
 }
 
-static INLINE void mmap_close(void *p, const char *filename, size_t filesz, int fd)
+static INLINE void mmap_close(void *RESTRICT p, const char *RESTRICT filename, size_t filesz, int fd)
 {
 	if (unlikely(close(fd))) {
 		fgrep_err("Can't close", filename);
@@ -131,7 +131,7 @@ static INLINE void mmap_close(void *p, const char *filename, size_t filesz, int 
 	}
 }
 
-static INLINE void fgrep(const char *needle, const char *filename, const size_t nlen, const size_t flen)
+static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen)
 {
 	int fd;
 	size_t sz;
@@ -326,7 +326,7 @@ BREAK_FIND_FGREP_DO_DIR__:;                                                     
 		if (unlikely(!dp))                                                               \
 			return;                                                                  \
 		char fulpath[MAX_PATH_LEN];                                                      \
-		struct dirent *ep;                                                               \
+		struct dirent *RESTRICT ep;                                                      \
 		while ((ep = readdir(dp))) {                                                     \
 			IF_DIR_RECUR_IF_REG_DO(F, DO, USE_LEN);                                  \
 		}                                                                                \
