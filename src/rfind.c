@@ -90,7 +90,7 @@ DO_DIR_BREAK__:;                                                                
 	closedir(dp);
 }
 
-static void findall(const char *RESTRICT dir, const size_t dlen)
+static void find_all(const char *RESTRICT dir, const size_t dlen)
 {
 	DIR *RESTRICT dp = opendir(dir);
 	if (unlikely(!dp))
@@ -104,7 +104,7 @@ static void findall(const char *RESTRICT dir, const size_t dlen)
 #define DO_DIR_ALL                                                                   \
 	do {                                                                         \
 		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                     \
-		findall(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+		find_all(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 DO_DIR_BREAK__:;                                                                     \
 	} while (0)
 
@@ -153,32 +153,30 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 #define IF_FIND_ALL                       \
 	do {                              \
 		if (argv[1][0] == '\0') { \
-			findall(".", 1);  \
+			find_all(".", 1);  \
 			return 1;         \
 		}                         \
 	} while (0)
 
 int main(int argc, char **argv)
 {
+	if (argc == 1 || !argv[1][0]) {
+		find_all(".", 1);
+		return 0;
+	}
 	char ptnbuf[MAX_NEEDLE_LEN + 1];
 	char *ptn;
 	char *dir;
 	size_t ptnlen;
 	size_t dlen;
 	switch (argc) {
-	case 1:
-		findall(".", 1);
-		return 1;
-		break;
 	case 2:
-		IF_FIND_ALL;
 		ptnlen = init_ptn(ptnbuf, argv[1]);
 		ptn = ptnbuf;
 		dir = ".";
 		dlen = 1;
 		break;
 	case 3:
-		IF_FIND_ALL;
 		ptnlen = init_ptn(ptnbuf, argv[1]);
 		ptn = ptnbuf;
 		dir = argv[2];

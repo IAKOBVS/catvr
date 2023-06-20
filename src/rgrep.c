@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 {
 	if (argc == 1 || !argv[1][0]) {
 		find_cat(".", 1);
-		return 1;
+		return 0;
 	}
 	const size_t nlen = strlen(NEEDLE_ARG);
 	init_memmem(NEEDLE_ARG, nlen);
