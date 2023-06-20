@@ -1,14 +1,14 @@
 #include <stddef.h>
-#include <sys/mman.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 
-#include "g_memmem.h"
 #include "config.h"
+#include "g_memmem.h"
 #include "global_table_256.h"
-#include "unlocked_io.h"
 #include "librgrep.h"
 #include "macros.h"
 #include "mmap.h"
+#include "unlocked_io.h"
 
 #define COUNT_NL(NL)                                                \
 	do {                                                        \

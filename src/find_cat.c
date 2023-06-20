@@ -4,12 +4,12 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#include <stddef.h>
 #include <dirent.h>
+#include <stddef.h>
 
+#include "cat.h"
 #include "config.h"
 #include "librgrep.h"
-#include "cat.h"
 
 void find_cat(const char *RESTRICT dir, const size_t dlen)
 {

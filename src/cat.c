@@ -2,10 +2,10 @@
 #include <string.h>
 #include <sys/mman.h>
 
-#include "librgrep.h"
-#include "mmap.h"
 #include "config.h"
 #include "global_table_256.h"
+#include "librgrep.h"
+#include "mmap.h"
 #include "unlocked_io.h"
 
 void cat(const char *RESTRICT filename, const size_t flen)

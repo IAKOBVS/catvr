@@ -1,6 +1,6 @@
 #include "macros.h"
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 void append(char *path, const char *dir, size_t dlen, const char *filename)
 {

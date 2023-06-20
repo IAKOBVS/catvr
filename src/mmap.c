@@ -1,10 +1,10 @@
+#include "librgrep.h"
+#include "macros.h"
 #include <fcntl.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include "macros.h"
-#include "librgrep.h"
 
 void *mmap_open(const char *RESTRICT filename, size_t *RESTRICT filesz, int *RESTRICT fd)
 {

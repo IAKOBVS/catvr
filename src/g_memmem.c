@@ -71,6 +71,8 @@ char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size
 	/* Assumes that needle length will never be over 256; */
 	/* otherwise check if needle length is over 256 */
 	/* and use the default memmem as fallback */
+	/* if (unlikely(nlen > 256)) */
+	/* 	memmem(h, hlen, n, nlen); */
 	size_t m1 = nlen - 1;
 	size_t shift1 = m1 - g_mtable[hash2(ne + m1)];
 	const unsigned char hash = hash2(ne + m1);

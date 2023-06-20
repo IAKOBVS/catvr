@@ -2,8 +2,8 @@
 #define LIBGREP_DEF_H
 
 #include "macros.h"
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #if USE_ANSI_COLORS
 #	define ANSI_RED     "\x1b[31m"
