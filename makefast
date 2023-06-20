@@ -1,0 +1,2 @@
+#!/bin/sh
+./make -march=native -O3 -flto

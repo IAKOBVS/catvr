@@ -17,7 +17,7 @@ else
 	return 1
 fi
 mkdir -p bin
-cd src || return
+cd src || exit
 for cfile in $(echo *.c); do
 	{
 		case $main in
