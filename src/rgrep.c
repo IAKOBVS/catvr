@@ -47,19 +47,18 @@
 
 #define PRINT_LITERAL(s) fwrite((s), 1, sizeof(s) - 1, stdout)
 
-#define COUNT_NL(NL)                               \
-	do {                                       \
-		const unsigned char *tmp = p;      \
-		while (tmp != linep) {             \
-			switch (g_table[*tmp--]) { \
-			case REJECT:               \
-				goto END;          \
-			case NEWLINE:              \
-				++NL;              \
-			default:;                  \
-			}                          \
-		}                                  \
-		linep = p;                         \
+#define COUNT_NL(NL)                                                \
+	do {                                                        \
+		for (const unsigned char *tmp = p; tmp != linep;) { \
+			switch (g_table[*tmp--]) {                  \
+			case REJECT:                                \
+				goto END;                           \
+			case NEWLINE:                               \
+				++NL;                               \
+			default:;                                   \
+			}                                           \
+		}                                                   \
+		linep = p;                                          \
 	} while (0)
 
 #if !USE_ANSI_COLORS
@@ -154,11 +153,8 @@ static INLINE void fgrep(const char *needle, const char *filename, const size_t 
 	unsigned int dgts;
 	char numbuf[UINT_LEN];
 	char *numbufp;
-	unsigned char *pp;
-	unsigned char *ppp;
-	unsigned char *start;
-	while ((pp = (unsigned char *)g_memmem(p, sz, needle, nlen))) {
-		start = p;
+	for (unsigned char *lnstart, *pp, *ppp; (pp = (unsigned char *)g_memmem(p, sz, needle, nlen));) {
+		lnstart = p;
 		p = pp;
 		while (p != filep) {
 			switch (g_table[*p]) {
@@ -188,7 +184,7 @@ BREAK_FOR1:
 		}
 BREAK_FOR2:;
 		FGREP_PRINT;
-		sz -= ppp - start;
+		sz -= ppp - lnstart;
 		p = ppp;
 	}
 END:;
@@ -376,16 +372,16 @@ static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 		PRINT_LITERAL(ANSI_RESET ":");
 #endif
 		for (;;) {
+			if (unlikely(p == pend)) {
+				putchar('\n');
+				goto END;
+			}
 			switch (g_table[*p]) {
 			case NEWLINE:
 				++p;
 				putchar('\n');
 				goto BREAK_FOR;
 			case REJECT:;
-			}
-			if (unlikely(p == pend)) {
-				putchar('\n');
-				goto END;
 			}
 			putchar(*p++);
 		}
