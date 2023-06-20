@@ -1,5 +1,5 @@
-#ifndef GLOBAL_TABLE_256_DEF_H
-#define GLOBAL_TABLE_256_DEF_H
+#ifndef G_TABLE_DEF_H
+#define G_TABLE_DEF_H
 
 enum { ACCEPT = 0,
        REJECT,
@@ -287,4 +287,4 @@ static unsigned char g_table[256] = {
 
 };
 
-#endif /* GLOBAL_TABLE_DEF_H */
+#endif /* G_TABLE_DEF_H */

@@ -4,7 +4,7 @@
 
 #include "config.h"
 #include "g_memmem.h"
-#include "global_table_256.h"
+#include "g_table.h"
 #include "librgrep.h"
 #include "mmap.h"
 #include "unlocked_io.h"
