@@ -19,10 +19,6 @@
 #include "unlocked_io.h"
 /* #include "fork.h" */
 
-#define FORK_AND_WAIT(x) (x)
-#define init_shm()
-#define free_shm()
-
 static char g_ln[MAX_LINE_LEN];
 
 /* skip . , .., .git, .vscode */
@@ -67,7 +63,7 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRI
 #define DO_DIR                                                                                                \
 	do {                                                                                                  \
 		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                                              \
-		FORK_AND_WAIT(find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen)); \
+		find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen); \
 DO_DIR_BREAK__:;                                                                                              \
 	} while (0)
 
@@ -115,7 +111,6 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 
 int main(int argc, char **argv)
 {
-	init_shm();
 	char ptnbuf[MAX_NEEDLE_LEN + 1];
 	char *ptn;
 	char *dir;
@@ -146,6 +141,5 @@ dotdir:
 	}
 	init_memmem(ptn, ptnlen);
 	find(dir, dlen, ptn, ptnlen);
-	free_shm();
 	return 0;
 }

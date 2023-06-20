@@ -60,7 +60,7 @@ static INLINE void free_shm()
 				++*g_child_alive;       \
 				DO;                     \
 				--*g_child_alive;       \
-				_exit(0);               \
+				exit(0);               \
 				break;                  \
 			default:                        \
 				IF_FORK_MAX_WAIT_CHILD; \

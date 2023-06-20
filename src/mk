@@ -1,2 +1,0 @@
-#!/bin/sh
-cd .. && ./mk -O3 -flto

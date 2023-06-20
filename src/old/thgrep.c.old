@@ -602,6 +602,6 @@ GREP_ALL:;
 		find_fgrep(NEEDLE_ARG, nlen, ".", 1);
 		break;
 	}
-	pthread_exit(NULL);
+	pthreadexit(NULL);
 	free_shm();
 }
