@@ -11,14 +11,6 @@
 #include "config.h"
 #include "librgrep.h"
 
-void find_cat(const char *RESTRICT dir, const size_t dlen)
-{
-	DIR *RESTRICT dp = opendir(dir);
-	if (unlikely(!dp))
-		return;
-	struct dirent *RESTRICT ep;
-	char fulpath[MAX_PATH_LEN];
-
 #define DO_REG                                                                   \
 	do {                                                                     \
 		IF_EXCLUDED_REG_GOTO(ep->d_name, goto CONT);                     \
@@ -31,7 +23,13 @@ void find_cat(const char *RESTRICT dir, const size_t dlen)
 		find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 	} while (0)
 
-	while ((ep = readdir(dp))) {
+void find_cat(const char *RESTRICT dir, const size_t dlen)
+{
+	DIR *RESTRICT dp = opendir(dir);
+	if (unlikely(!dp))
+		return;
+	char fulpath[MAX_PATH_LEN];
+	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:

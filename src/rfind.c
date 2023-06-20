@@ -10,9 +10,9 @@
 #include <unistd.h>
 
 #include "config.h"
+#include "g_memmem.h"
+#include "librgrep.h"
 #include "unlocked_io.h"
-#include "g_memmem.c"
-#include "librgrep.c"
 
 #undef USE_ANSI_COLORS
 #define USE_ANSI_COLORS 0
@@ -35,7 +35,6 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRI
 	DIR *RESTRICT dp = opendir(dir);
 	if (unlikely(!dp))
 		return;
-	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
 	char *g_found;
 	size_t g_lnlen;
@@ -65,8 +64,8 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRI
 DO_DIR_BREAK__:;                                                                               \
 	} while (0)
 
+	for (struct dirent *RESTRICT ep; (ep = readdir(dp)); ) {
 #ifdef _DIRENT_HAVE_D_TYPE
-	while ((ep = readdir(dp))) {
 		switch (ep->d_type) {
 		case DT_REG:
 			DO_REG;
@@ -93,9 +92,7 @@ static void find_all(const char *RESTRICT dir, const size_t dlen)
 	DIR *RESTRICT dp = opendir(dir);
 	if (unlikely(!dp))
 		return;
-	struct dirent *RESTRICT ep;
 	char fulpath[MAX_PATH_LEN];
-
 #define DO_REG_ALL \
 	puts(ep->d_name)
 
@@ -106,8 +103,8 @@ static void find_all(const char *RESTRICT dir, const size_t dlen)
 DO_DIR_BREAK__:;                                                                      \
 	} while (0)
 
+	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE
-	while ((ep = readdir(dp))) {
 		switch (ep->d_type) {
 		case DT_REG:
 			DO_REG_ALL;
@@ -117,13 +114,13 @@ DO_DIR_BREAK__:;                                                                
 			break;
 		}
 #else
-	struct stat st;
-	if (unlikely(stat(dir, &st)))
-		continue;
-	if (S_ISREG(st.st_mode))
-		DO_REG;
-	else if (S_ISDIR(st.st_mode))
-		DO_DIR;
+		struct stat st;
+		if (unlikely(stat(dir, &st)))
+			continue;
+		if (S_ISREG(st.st_mode))
+			DO_REG;
+		else if (S_ISDIR(st.st_mode))
+			DO_DIR;
 #endif /* _DIRENT_HAVE_D_TYPE */
 	}
 	closedir(dp);

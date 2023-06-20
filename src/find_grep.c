@@ -59,8 +59,7 @@
 		if (unlikely(!dp))                                                                                  \
 			return;                                                                                     \
 		char fulpath[MAX_PATH_LEN];                                                                         \
-		struct dirent *RESTRICT ep;                                                                         \
-		while ((ep = readdir(dp))) {                                                                        \
+		for (struct dirent * RESTRICT ep; (ep = readdir(dp));) {                                            \
 			GREP_IF_REG(FUNC_SELF, FUNC_REG);                                                           \
 CONT:;                                                                                                              \
 		}                                                                                                   \

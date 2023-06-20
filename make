@@ -31,13 +31,13 @@ done
 wait
 for m in $main; do
 	{
-		$compiler -Wall -Wextra $@ "$m" -o "../bin/${m%.*}" ./*.o
-		echo "$compiler $@ $m -o ${m%.*} -Wall -Wextra" ./*.o
+		$compiler -Wall -Wextra $@ "$m" -o "../bin/${m%.*}" ./*.o &
+		echo "$compiler $@ $m -o ${m%.*} -Wall -Wextra" ./*.o &
 	} &
 done
 {
-	$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind
-	echo "$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind"
+	$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.c &
+	echo "$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind" &
 } &
 wait
 if [ ! -d "$scripts_dir" ]; then
@@ -46,3 +46,4 @@ if [ ! -d "$scripts_dir" ]; then
 	exit
 fi
 cp ../bin/* "$scripts_dir"
+echo "Copied to $scripts_dir"
