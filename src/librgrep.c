@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
+void append(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename);
+char *appendp(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename);
+NOINLINE void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename);
+
 void append(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename)
 {
 	memcpy(path, dir, dlen);

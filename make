@@ -1,4 +1,7 @@
 #!/bin/sh
+std=--std=c99
+flags='-Wall -Wextra -pedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes'
+args="$std $flags"
 main='
 rgrep.c
 '
@@ -19,25 +22,25 @@ cd src || {
 for cfile in $(echo *.c); do
 	{
 		case "$main rfind.c" in
-		*$cfile*) exit ;;
+		*$cfile*) [ "$cfile" != grep.c ] && exit ;;
 		esac
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
-			$compiler -Wall -Wextra $@ "$cfile" -c -o "$base.o"
-			echo $compiler $@ "$cfile" -c -o "$base.o"
+			$compiler $@ "$cfile" -c -o "$base.o" $args
+			echo $compiler $@ "$cfile" -c -o "$base.o" $args
 		fi
 	} &
 done
 wait
 for m in $main; do
 	{
-		$compiler -Wall -Wextra $@ "$m" -o "../bin/${m%.*}" ./*.o &
-		echo "$compiler $@ $m -o ${m%.*} -Wall -Wextra" ./*.o &
+		$compiler $@ "$m" -o "../bin/${m%.*}" ./*.o $args
+		echo "$compiler $@ $m -o ${m%.*}" ./*.o $args
 	} &
 done
 {
-	$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.c &
-	echo "$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind" &
+	$compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.c $args
+	echo "$compiler $@ rfind.c -o ../bin/rfind $args"
 } &
 wait
 if [ ! -d "$scripts_dir" ]; then

@@ -23,6 +23,8 @@
 		find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 	} while (0)
 
+void find_cat(const char *RESTRICT dir, const size_t dlen);
+
 void find_cat(const char *RESTRICT dir, const size_t dlen)
 {
 	DIR *RESTRICT dp = opendir(dir);

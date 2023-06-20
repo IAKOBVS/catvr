@@ -9,7 +9,7 @@
 #	define STATIC_ASSERT(expr, msg) _Static_assert(expr, msg)
 #else
 #	define ASSERT(expr, msg)
-#endif // static_assert
+#endif /* static_assert */
 
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 24
 #	if _POSIX_C_SOURCE >= 199309L
@@ -127,7 +127,7 @@
 #	define RESTRICT __restrict
 #else
 #	define RESTRICT
-#endif // restrict
+#endif /* restrict */
 
 #define CASE_VOWEL_LOWER \
 case 'a':                \

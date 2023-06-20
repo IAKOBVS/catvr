@@ -9,6 +9,8 @@
 #include "mmap.h"
 #include "unlocked_io.h"
 
+void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
+
 #define COUNTNL(NL)                                                 \
 	do {                                                        \
 		for (const unsigned char *tmp = p; tmp != linep;) { \

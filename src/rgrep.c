@@ -13,6 +13,9 @@
 #include "g_memmem.h"
 #include "grep.h"
 
+NOINLINE void stat_fail(const char *entry);
+NOINLINE void no_such_file(const char *entry);
+
 NOINLINE void stat_fail(const char *entry)
 {
 	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);

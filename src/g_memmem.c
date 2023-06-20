@@ -34,6 +34,8 @@
 #endif /* !HAS_MEMMEM */
 
 uint8_t g_mtable[256];
+void init_memmem(const char *RESTRICT ne, const int nlen);
+char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen);
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
 

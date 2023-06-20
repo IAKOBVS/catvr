@@ -53,20 +53,21 @@
 
 #endif /* _DIRENT_HAVE_D_TYPE */
 
-#define DEF_FIND_T(FUNC_SELF, FUNC_REG)                                                                             \
-	void FUNC_SELF(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen) \
-	{                                                                                                           \
-		DIR *RESTRICT dp = opendir(dir);                                                                    \
-		if (unlikely(!dp))                                                                                  \
-			return;                                                                                     \
-		char fulpath[MAX_PATH_LEN];                                                                         \
-		DECLARE_STAT;                                                                                       \
-		for (struct dirent *RESTRICT ep; (ep = readdir(dp)); ) {                                            \
-			GREP_IF_REG(FUNC_SELF, FUNC_REG);                                                           \
-CONT:;                                                                                                              \
-		}                                                                                                   \
-		closedir(dp);                                                                                       \
-		return;                                                                                             \
+#define DEF_FIND_T(FUNC_SELF, FUNC_REG)                                                                              \
+	void FUNC_SELF(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen); \
+	void FUNC_SELF(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen)  \
+	{                                                                                                            \
+		DIR *RESTRICT dp = opendir(dir);                                                                     \
+		if (unlikely(!dp))                                                                                   \
+			return;                                                                                      \
+		char fulpath[MAX_PATH_LEN];                                                                          \
+		DECLARE_STAT;                                                                                        \
+		for (struct dirent *RESTRICT ep; (ep = readdir(dp)); ) {                                             \
+			GREP_IF_REG(FUNC_SELF, FUNC_REG);                                                            \
+CONT:;                                                                                                               \
+		}                                                                                                    \
+		closedir(dp);                                                                                        \
+		return;                                                                                              \
 	}
 
 DEF_FIND_T(find_fgrep, fgrep)
