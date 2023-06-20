@@ -25,8 +25,8 @@ for cfile in $(echo *.c); do
 		esac
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
-				$compiler "$cfile" -c -o "$base.o" $@
-				echo $compiler "$cfile" -c -o "$base.o" $@
+			$compiler "$cfile" -c -o "$base.o" $@
+			echo $compiler "$cfile" -c -o "$base.o" $@
 		fi
 	} &
 done

@@ -6,7 +6,6 @@
 #include "g_memmem.h"
 #include "global_table_256.h"
 #include "librgrep.h"
-#include "macros.h"
 #include "mmap.h"
 #include "unlocked_io.h"
 

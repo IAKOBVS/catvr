@@ -1,5 +1,4 @@
 #include "librgrep.h"
-#include "macros.h"
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/mman.h>
