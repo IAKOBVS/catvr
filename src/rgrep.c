@@ -6,20 +6,11 @@
 
 #define PROG_NAME "rgrep"
 
-#include <dirent.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
-#include "config.h"
 #include "g_memmem.h"
-#include "librgrep.h"
 #include "grep.h"
 #include "find_grep.h"
-#include "cat.h"
 #include "find_cat.h"
 
 static void stat_fail(const char *entry)

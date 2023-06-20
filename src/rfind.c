@@ -60,11 +60,11 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRI
 		}                                                                                 \
 	} while (0)
 
-#define DO_DIR                                                                                                \
-	do {                                                                                                  \
-		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                                              \
+#define DO_DIR                                                                                 \
+	do {                                                                                   \
+		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                               \
 		find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen); \
-DO_DIR_BREAK__:;                                                                                              \
+DO_DIR_BREAK__:;                                                                               \
 	} while (0)
 
 #ifdef _DIRENT_HAVE_D_TYPE
