@@ -92,8 +92,12 @@ CONT:;
 	closedir(dp);
 }
 
-#define DO_REG_ALL \
-	puts(ep->d_name)
+#define DO_REG_ALL                            \
+	do {                                  \
+		fwrite(dir, 1, dlen, stdout); \
+		putchar('/');                 \
+		puts(ep->d_name);             \
+	} while (0)
 
 #define DO_DIR_ALL                                                                    \
 	do {                                                                          \

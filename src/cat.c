@@ -25,8 +25,6 @@ void cat(const char *RESTRICT filename, const size_t flen)
 	char numbuf[UINT_LEN];
 	char *numbufp;
 	unsigned int dgts;
-	if (memchr(p, 0, sz))
-		goto END;
 	for (unsigned int NL = 1;; ++NL) {
 #if !USE_ANSI_COLORS
 		fwrite(filename, 1, flen, stdout);

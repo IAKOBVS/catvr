@@ -28,6 +28,7 @@ static unsigned char g_table[256] = {
 	ACCEPT, /* 9 */
 	NEWLINE, /* 10 */
 
+	/* unprintable */
 	REJECT, /* 11 */
 	REJECT, /* 12 */
 	REJECT, /* 13 */
