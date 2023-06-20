@@ -46,4 +46,5 @@ if [ ! -d "$scripts_dir" ]; then
 	exit
 fi
 cp ../bin/* "$scripts_dir"
+echo
 echo "Copied to $scripts_dir"
