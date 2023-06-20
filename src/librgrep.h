@@ -25,13 +25,13 @@
 /* Does not nul terminate */
 #define itoa_uint_pos(s, n, base, digits)             \
 	do {                                          \
-		unsigned int n_ = n;                  \
-		char *const end = (s) + UINT_LEN - 1; \
-		(s) = end;                            \
+		unsigned int n__ = n;                  \
+		char *const end__ = (s) + UINT_LEN - 1; \
+		(s) = end__;                            \
 		do                                    \
-			*(s)-- = (n_) % (base) + '0'; \
-		while ((n_) /= 10);                   \
-		digits = end - (s)++;                 \
+			*(s)-- = (n__) % (base) + '0'; \
+		while ((n__) /= 10);                   \
+		digits = end__ - (s)++;                 \
 	} while (0)
 
 static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename)

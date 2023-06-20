@@ -33,18 +33,6 @@
 #	define free_shm()
 #endif /* USE_FORK */
 
-#undef itoa_uint_pos
-#define itoa_uint_pos(s, n, base, digits)             \
-	do {                                          \
-		unsigned int n_ = n;                  \
-		char *const end = (s) + UINT_LEN - 1; \
-		(s) = end;                            \
-		do                                    \
-			*(s)-- = (n_) % (base) + '0'; \
-		while ((n_) /= 10);                   \
-		digits = end - (s)++;                 \
-	} while (0)
-
 #define PRINT_LITERAL(s) fwrite((s), 1, sizeof(s) - 1, stdout)
 
 #define COUNT_NL(NL)                                                \
