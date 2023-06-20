@@ -9,7 +9,7 @@
 #include "mmap.h"
 #include "unlocked_io.h"
 
-#define COUNT_NL(NL)                                                \
+#define COUNTNL(NL)                                                 \
 	do {                                                        \
 		for (const unsigned char *tmp = p; tmp != linep;) { \
 			switch (g_table[*tmp--]) {                  \
@@ -27,7 +27,7 @@
 
 #	define PRINTLN                                       \
 		do {                                          \
-			COUNT_NL(NL);                         \
+			COUNTNL(NL);                          \
 			numbufp = numbuf;                     \
 			itoa_uint_pos(numbufp, NL, 10, dgts); \
 			fwrite(filename, 1, flen, stdout);    \
@@ -41,7 +41,7 @@
 
 #	define PRINTLN                                                  \
 		do {                                                     \
-			COUNT_NL(NL);                                    \
+			COUNTNL(NL);                                     \
 			numbufp = numbuf;                                \
 			itoa_uint_pos(numbufp, NL, 10, dgts);            \
 			PRINT_LITERAL(ANSI_RED);                         \
