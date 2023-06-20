@@ -9,6 +9,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#ifndef _DIRENT_HAVE_D_TYPE
+#	include <sys/stat.h>
+#endif /* _DIRENT_HAVE_D_TYPE */
+
 #include "config.h"
 #include "g_memmem.h"
 #include "librgrep.h"
@@ -30,15 +34,6 @@ static char g_ln[MAX_LINE_LEN];
 			}                        \
 	} while (0)
 
-static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRICT ptn, const size_t ptnlen)
-{
-	DIR *RESTRICT dp = opendir(dir);
-	if (unlikely(!dp))
-		return;
-	char fulpath[MAX_PATH_LEN];
-	char *g_found;
-	size_t g_lnlen;
-
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
@@ -59,12 +54,22 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRI
 
 #define DO_DIR                                                                                 \
 	do {                                                                                   \
-		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                               \
+		IF_EXCLUDED_DO(ep->d_name, goto CONT);                                         \
 		find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen); \
-DO_DIR_BREAK__:;                                                                               \
 	} while (0)
 
-	for (struct dirent *RESTRICT ep; (ep = readdir(dp)); ) {
+static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRICT ptn, const size_t ptnlen)
+{
+	DIR *RESTRICT dp = opendir(dir);
+	if (unlikely(!dp))
+		return;
+#ifndef _DIRENT_HAVE_D_TYPE
+	struct stat st;
+#endif /* _DIRENT_HAVE_D_TYPE */
+	char fulpath[MAX_PATH_LEN];
+	char *g_found;
+	size_t g_lnlen;
+	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
@@ -75,24 +80,18 @@ DO_DIR_BREAK__:;                                                                
 			break;
 		}
 #else
-	struct stat st;
-	if (unlikely(stat(dir, &st)))
-		continue;
-	if (S_ISREG(st.st_mode))
-		DO_REG;
-	else if (S_ISDIR(st.st_mode))
-		DO_DIR;
+		if (unlikely(stat(dir, &st)))
+			continue;
+		if (S_ISREG(st.st_mode))
+			DO_REG;
+		else if (S_ISDIR(st.st_mode))
+			DO_DIR;
 #endif /* _DIRENT_HAVE_D_TYPE */
+CONT:;
 	}
 	closedir(dp);
 }
 
-static void find_all(const char *RESTRICT dir, const size_t dlen)
-{
-	DIR *RESTRICT dp = opendir(dir);
-	if (unlikely(!dp))
-		return;
-	char fulpath[MAX_PATH_LEN];
 #define DO_REG_ALL \
 	puts(ep->d_name)
 
@@ -103,6 +102,15 @@ static void find_all(const char *RESTRICT dir, const size_t dlen)
 DO_DIR_BREAK__:;                                                                      \
 	} while (0)
 
+static void find_all(const char *RESTRICT dir, const size_t dlen)
+{
+	DIR *RESTRICT dp = opendir(dir);
+	if (unlikely(!dp))
+		return;
+#ifndef _DIRENT_HAVE_D_TYPE
+	struct stat st;
+#endif /* _DIRENT_HAVE_D_TYPE */
+	char fulpath[MAX_PATH_LEN];
 	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
@@ -114,7 +122,6 @@ DO_DIR_BREAK__:;                                                                
 			break;
 		}
 #else
-		struct stat st;
 		if (unlikely(stat(dir, &st)))
 			continue;
 		if (S_ISREG(st.st_mode))
