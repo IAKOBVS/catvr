@@ -10,14 +10,12 @@
 #include <unistd.h>
 
 #include "config.h"
+#include "unlocked_io.h"
+#include "g_memmem.c"
+#include "librgrep.c"
 
 #undef USE_ANSI_COLORS
 #define USE_ANSI_COLORS 0
-
-#include "g_memmem.h"
-#include "librgrep.h"
-#include "unlocked_io.h"
-/* #include "fork.h" */
 
 static char g_ln[MAX_LINE_LEN];
 

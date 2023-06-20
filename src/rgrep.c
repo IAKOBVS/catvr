@@ -1,3 +1,9 @@
+#if defined(__GNUC__) || defined(__GLIBC__)
+#	ifndef _GNU_SOURCE
+#		define _GNU_SOURCE
+#	endif
+#endif /* _GNU_SOURCE */
+
 #define PROG_NAME "rgrep"
 
 #include <sys/stat.h>

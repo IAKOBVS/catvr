@@ -1,7 +1,6 @@
 #!/bin/sh
 main='
 rgrep.c
-rfind.c
 '
 scripts_dir=$HOME/.local/bin/scripts
 if [ -f /usr/bin/gcc ]; then
@@ -19,7 +18,7 @@ cd src || {
 }
 for cfile in $(echo *.c); do
 	{
-		case $main in
+		case "$main rfind.c" in
 		*$cfile*) exit ;;
 		esac
 		base=${cfile%.*}
@@ -36,6 +35,10 @@ for m in $main; do
 		echo "$compiler $@ $m -o ${m%.*} -Wall -Wextra" ./*.o
 	} &
 done
+{
+	$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind
+	echo "$compiler -Wall -Wextra $@ rfind.c -o ../bin/rfind"
+} &
 wait
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
