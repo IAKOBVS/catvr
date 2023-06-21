@@ -35,7 +35,7 @@
 
 uint8_t g_mtable[256];
 void init_memmem(const char *RESTRICT ne, const int nlen);
-char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen);
+void *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen);
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
 
@@ -46,7 +46,7 @@ void init_memmem(const char *RESTRICT ne, const int nlen)
 		g_mtable[hash2(ne + i)] = i;
 }
 
-char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen)
+void *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen)
 {
 	if (hlen < nlen)
 		return NULL;
@@ -58,8 +58,8 @@ char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size
 		return (char *)h;
 	case 1:
 		if (*hs == *ne)
-			return (char *)hs;
-		return (char *)memchr(hs, *ne, hlen);
+			return (void *)hs;
+		return memchr(hs, *ne, hlen);
 	case 2: {
 		uint32_t nw = ne[0] << 16 | ne[1], hw = hs[0] << 16 | hs[1];
 		for (hs++; hs <= end && hw != nw;)
@@ -85,11 +85,11 @@ char *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size
 		hs -= tmp;
 		if (tmp < m1)
 			continue;
-		if (!memcmp(hs, n, m1)) {
 #define reset_table \
 	g_mtable[hash] = 0
+		if (!memcmp(hs, n, m1)) {
 			reset_table;
-			return (char *)hs;
+			return (void *)hs;
 		}
 		hs += shift1;
 	}

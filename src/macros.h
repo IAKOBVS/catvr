@@ -129,6 +129,14 @@
 #	define RESTRICT
 #endif /* restrict */
 
+#if defined(__GNUC__) || defined(__clang__)
+    #define NONNULL_ALL __attribute__((nonnull))
+    #define NONNULL(args) __attribute__((nonnull (args)))
+#else
+    #define NONNULL_ALL
+    #define NONNULL(args)
+#endif /* NONNULL */
+
 #define CASE_VOWEL_LOWER \
 case 'a':                \
 case 'i':                \

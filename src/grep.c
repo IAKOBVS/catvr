@@ -7,6 +7,7 @@
 #include "g_table.h"
 #include "globals.h"
 #include "librgrep.h"
+#include "macros.h"
 #include "mmap.h"
 #include "unlocked_io.h"
 
@@ -105,7 +106,7 @@ void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const siz
 	unsigned int dgts;
 	char numbuf[UINT_LEN];
 	char *numbufp;
-	for (unsigned char *lnstart, *pp, *ppp; (pp = (unsigned char *)g_memmem(p, sz, needle, nlen));) {
+	for (unsigned char *lnstart, *pp, *ppp; (pp = g_memmem(p, sz, needle, nlen));) {
 		lnstart = p;
 		p = pp;
 		while (p != filep) {
