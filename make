@@ -39,7 +39,7 @@ for m in $main; do
 	} &
 done
 {
-	$compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.c $args
+	$compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.o $args
 	echo $compiler $@ rfind.c -o ../bin/rfind $args
 } &
 wait
