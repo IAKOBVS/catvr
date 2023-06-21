@@ -46,8 +46,8 @@ INLINE void close_g_buf(void)
 	free(g_buf);
 }
 
-#define NEEDLE_ARG argv[1]
-#define DIR_ARG	   argv[2]
+#define n argv[1]
+#define dir argv[2]
 
 int main(int argc, char **argv)
 {
@@ -56,32 +56,43 @@ int main(int argc, char **argv)
 		find_cat(".", 1);
 		return 0;
 	}
-	const size_t nlen = strlen(NEEDLE_ARG);
-	init_memmem(NEEDLE_ARG, nlen);
+	size_t nlen;
+	if (n[1] == '\0') {
+		nlen = 1;
+	} else if (n[2] == '\0') {
+		nlen = 2;
+	} else if (n[3] == '\0') {
+		nlen = 3;
+	} else {
+		nlen = 4;
+		for (const char *p = n + 4; p; ++p, ++nlen)
+			;
+	}
+	init_memmem(n, nlen);
 	if (argc == 2)
 		goto GREP_ALL;
-	switch (DIR_ARG[0]) {
+	switch (dir[0]) {
 	case '.':
-		if (unlikely(DIR_ARG[1] == '\0'))
+		if (unlikely(dir[1] == '\0'))
 			goto GREP_ALL;
 	/* FALLTHROUGH */
-	default: {
-		if (unlikely(stat(DIR_ARG, &st))) {
-			stat_fail(DIR_ARG);
+	default:
+		if (unlikely(stat(dir, &st))) {
+			stat_fail(dir);
 			return 1;
 		}
 		if (unlikely(S_ISREG(st.st_mode))) {
-			fgrep(NEEDLE_ARG, DIR_ARG, nlen, strlen(DIR_ARG));
+			fgrep(n, dir, nlen, strlen(dir));
 		} else if (S_ISDIR(st.st_mode)) {
-			find_fgrep(NEEDLE_ARG, nlen, DIR_ARG, strlen(DIR_ARG));
+			find_fgrep(n, nlen, dir, strlen(dir));
 		} else {
-			no_such_file(DIR_ARG);
+			no_such_file(dir);
 			return 1;
 		}
-	} break;
+		break;
 	case '\0':
-GREP_ALL:;
-		find_fgrep(NEEDLE_ARG, nlen, ".", 1);
+	GREP_ALL:;
+		find_fgrep(n, nlen, ".", 1);
 		break;
 	}
 	close_g_buf();
