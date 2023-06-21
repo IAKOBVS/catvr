@@ -1,7 +1,7 @@
 #!/bin/sh
 std=--std=c99
 flags='-Wall -Wextra -pedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes'
-args="$std $flags -g"
+args="$std $flags"
 main='
 rgrep.c
 '

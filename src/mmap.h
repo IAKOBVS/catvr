@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "globals.h"
 
 /* #include "macros.h" */
@@ -21,19 +24,17 @@
 
 #ifdef _DIRENT_HAVE_D_TYPE
 /* if d_type is not available, it already calls stat in find */
-#	define STAT_IF_EMPTY                      \
-		if (unlikely(stat(filename, &st))) \
-		return
+#	define CHECK_FILESZ(fd) fstat(fd, &st)
 #else
-#	define STAT_IF_EMPTY
+#	define STAT_IF_EMPTY(fd)
 #endif /* _DIRENT_HAVE_D_TYPE */
 
 #define MALLOC_OPEN(filename, filesz)                                \
 	do {                                                         \
-		FILE *fp__ = fopen(filename, "r");                   \
-		if (unlikely(!fp__))                                 \
+		int fd = open(filename, O_RDONLY);                   \
+		if (unlikely(fd < 0))                                \
 			return;                                      \
-		STAT_IF_EMPTY;                                       \
+		CHECK_FILESZ(fd);                                    \
 		if (unlikely(!st.st_size))                           \
 			return;                                      \
 		if (unlikely(st.st_size > MAX_FILE_SZ))              \
@@ -48,8 +49,8 @@
 			g_bufsz = st.st_size;                        \
 		}                                                    \
 		filesz = st.st_size;                                 \
-		fread(g_buf, 1, filesz, fp__);                       \
-		fclose(fp__);                                        \
+		read(fd, g_buf, filesz);                             \
+		close(fd);                                           \
 	} while (0)
 
 #endif /* MMAP_DEF_H */

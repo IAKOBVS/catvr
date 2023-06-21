@@ -48,15 +48,14 @@ INLINE void close_g_buf(void)
 
 #define GET_NEEDLE_LEN(n, nlen)                   \
 	do {                                      \
-		if (n[1] == '\0') {               \
+		if (n[1] == '\0')                 \
 			nlen = 1;                 \
-		} else if (n[2] == '\0') {        \
+		else if (n[2] == '\0')            \
 			nlen = 2;                 \
-		} else if (n[3] == '\0') {        \
+		else if (n[3] == '\0')            \
 			nlen = 3;                 \
-		} else {                          \
+		else                              \
 			nlen = 3 + strlen(n + 3); \
-		}                                 \
 	} while (0)
 
 #define needle (argv[1])
@@ -65,6 +64,7 @@ INLINE void close_g_buf(void)
 int main(int argc, char **argv)
 {
 	init_g_buf();
+	setvbuf(stdout, NULL, _IOFBF, BUFSIZ);
 	if (argc == 1 || !argv[1][0]) {
 		find_cat(".", 1);
 		return 0;
