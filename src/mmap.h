@@ -10,6 +10,7 @@
 /* void mmap_close(void *RESTRICT p, const char *RESTRICT filename, size_t filesz, int fd); */
 
 #ifdef _DIRENT_HAVE_D_TYPE
+	/* if d_type is not available, it already*/
 #	define STAT_IF_EMPTY                      \
 		if (unlikely(stat(filename, &st))) \
 		return
