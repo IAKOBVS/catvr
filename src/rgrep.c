@@ -35,7 +35,7 @@ INLINE void init_g_buf(void)
 {
 	g_buf = malloc(MIN_BUF_SZ);
 	if (unlikely(!g_buf)) {
-		fputs("Can't allocate memory", stderr);
+		fputs("Can't malloc for main buffer\n", stderr);
 		exit(1);
 	}
 	g_bufsz = MIN_BUF_SZ;
@@ -46,19 +46,17 @@ INLINE void close_g_buf(void)
 	free(g_buf);
 }
 
-#define GET_NEEDLE_LEN(n, nlen)                                     \
-	do {                                                        \
-		if (n[1] == '\0') {                                 \
-			nlen = 1;                                   \
-		} else if (n[2] == '\0') {                          \
-			nlen = 2;                                   \
-		} else if (n[3] == '\0') {                          \
-			nlen = 3;                                   \
-		} else {                                            \
-			nlen = 4;                                   \
-			for (const char *p = n + 4; p; ++p, ++nlen) \
-				;                                   \
-		}                                                   \
+#define GET_NEEDLE_LEN(n, nlen)                   \
+	do {                                      \
+		if (n[1] == '\0') {               \
+			nlen = 1;                 \
+		} else if (n[2] == '\0') {        \
+			nlen = 2;                 \
+		} else if (n[3] == '\0') {        \
+			nlen = 3;                 \
+		} else {                          \
+			nlen = 3 + strlen(n + 3); \
+		}                                 \
 	} while (0)
 
 #define needle (argv[1])

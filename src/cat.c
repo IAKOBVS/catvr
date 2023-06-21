@@ -60,7 +60,9 @@ void cat(const char *RESTRICT filename, const size_t flen)
 				++p;
 				putchar('\n');
 				goto BREAK_FOR;
-			case REJECT:;
+			case REJECT:
+				putchar('\n');
+				goto END;
 			}
 			putchar(*p++);
 		}

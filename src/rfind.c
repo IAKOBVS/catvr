@@ -21,7 +21,7 @@
 #undef USE_ANSI_COLORS
 #define USE_ANSI_COLORS 0
 
-static char g_ln[MAX_LINE_LEN];
+static char g_ln[MAX_PATH_LEN];
 
 /* skip . , .., .git, .vscode */
 #define IF_EXCLUDED_DO(filename, action)         \
