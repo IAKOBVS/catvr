@@ -10,11 +10,11 @@
 /* void mmap_close(void *RESTRICT p, const char *RESTRICT filename, size_t filesz, int fd); */
 
 #ifdef _DIRENT_HAVE_D_TYPE
-#	define STAT_IF_NO_STAT                     \
+#	define STAT_IF_EMPTY                      \
 		if (unlikely(stat(filename, &st))) \
-			return
+		return
 #else
-#	define STAT_IF_NO_STAT
+#	define STAT_IF_EMPTY
 #endif /* _DIRENT_HAVE_D_TYPE */
 
 #define MALLOC_OPEN(buf, filename, filesz)                                      \
@@ -22,7 +22,7 @@
 		FILE *fp = fopen(filename, "r");                                \
 		if (unlikely(!fp))                                              \
 			return;                                                 \
-		STAT_IF_NO_STAT;                                                \
+		STAT_IF_EMPTY;                                                  \
 		if (unlikely(!st.st_size))                                      \
 			return;                                                 \
 		if (unlikely(st.st_size > MAX_FILE_SZ))                         \
