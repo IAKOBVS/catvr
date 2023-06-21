@@ -46,6 +46,21 @@ INLINE void close_g_buf(void)
 	free(g_buf);
 }
 
+#define GET_NEEDLE_LEN(n, nlen)                                     \
+	do {                                                        \
+		if (n[1] == '\0') {                                 \
+			nlen = 1;                                   \
+		} else if (n[2] == '\0') {                          \
+			nlen = 2;                                   \
+		} else if (n[3] == '\0') {                          \
+			nlen = 3;                                   \
+		} else {                                            \
+			nlen = 4;                                   \
+			for (const char *p = n + 4; p; ++p, ++nlen) \
+				;                                   \
+		}                                                   \
+	} while (0)
+
 #define n argv[1]
 #define dir argv[2]
 
@@ -57,17 +72,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	size_t nlen;
-	if (n[1] == '\0') {
-		nlen = 1;
-	} else if (n[2] == '\0') {
-		nlen = 2;
-	} else if (n[3] == '\0') {
-		nlen = 3;
-	} else {
-		nlen = 4;
-		for (const char *p = n + 4; p; ++p, ++nlen)
-			;
-	}
+	GET_NEEDLE_LEN(n, nlen);
 	init_memmem(n, nlen);
 	if (argc == 2)
 		goto GREP_ALL;
