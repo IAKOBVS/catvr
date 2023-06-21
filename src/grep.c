@@ -5,7 +5,6 @@
 #include "config.h"
 #include "g_memmem.h"
 #include "g_table.h"
-#include "globals.h"
 #include "librgrep.h"
 #include "macros.h"
 #include "mmap.h"
@@ -85,7 +84,7 @@ void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const siz
 {
 	/* unsigned char *p = malloc_open(filename, &sz); */
 	size_t sz;
-	MALLOC_OPEN(g_buf, filename, sz);
+	MALLOC_OPEN(filename, sz);
 	/* int fd; */
 	/* unsigned char *p = mmap_open(filename, &sz, &fd); */
 	/* if (unlikely(sz == MAX_FILE_SZ)) */
@@ -141,6 +140,5 @@ BREAK_FOR2:;
 		p = ppp;
 	}
 END:;
-	MALLOC_CLOSE(filep);
 	/* mmap_close(filep, filename, filesz, fd); */
 }

@@ -35,7 +35,7 @@ INLINE void init_g_buf(void)
 {
 	g_buf = malloc(MIN_BUF_SZ);
 	if (unlikely(!g_buf)) {
-		fputs("Can't malloc for main buffer\n", stderr);
+		fputs("Can't malloc main buffer\n", stderr);
 		exit(1);
 	}
 	g_bufsz = MIN_BUF_SZ;
@@ -60,11 +60,12 @@ INLINE void close_g_buf(void)
 	} while (0)
 
 #define needle (argv[1])
-#define dir (argv[2])
+#define dir    (argv[2])
 
 int main(int argc, char **argv)
 {
 	init_g_buf();
+	fprintf(stderr, "%p\n", g_buf);
 	if (argc == 1 || !argv[1][0]) {
 		find_cat(".", 1);
 		return 0;
@@ -94,7 +95,7 @@ int main(int argc, char **argv)
 		}
 		break;
 	case '\0':
-	GREP_ALL:;
+GREP_ALL:;
 		find_fgrep(needle, nlen, ".", 1);
 		break;
 	}

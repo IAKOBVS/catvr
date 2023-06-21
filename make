@@ -1,7 +1,7 @@
 #!/bin/sh
 std=--std=c99
 flags='-Wall -Wextra -pedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes'
-args="$std $flags"
+args="$std $flags -g"
 main='
 rgrep.c
 '
@@ -40,7 +40,7 @@ for m in $main; do
 done
 {
 	$compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.o $args
-	echo $compiler $@ rfind.c -o ../bin/rfind $args
+	echo $compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.o $args
 } &
 wait
 if [ ! -d "$scripts_dir" ]; then

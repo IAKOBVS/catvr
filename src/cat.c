@@ -4,7 +4,6 @@
 
 #include "config.h"
 #include "g_table.h"
-#include "globals.h"
 #include "librgrep.h"
 #include "mmap.h"
 #include "unlocked_io.h"
@@ -14,7 +13,7 @@ void cat(const char *RESTRICT filename, const size_t flen);
 void cat(const char *RESTRICT filename, const size_t flen)
 {
 	size_t sz;
-	MALLOC_OPEN(g_buf, filename, sz);
+	MALLOC_OPEN(filename, sz);
 	/* int fd; */
 	/* unsigned char *p = mmap_open(filename, &sz, &fd); */
 	/* if (unlikely(sz >= MAX_FILE_SZ)) */
@@ -68,7 +67,6 @@ void cat(const char *RESTRICT filename, const size_t flen)
 		}
 BREAK_FOR:;
 	}
-END:
-	MALLOC_CLOSE(filep);
+END:;
 	/* mmap_close(filep, filename, filesz, fd); */
 }

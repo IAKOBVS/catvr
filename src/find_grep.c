@@ -25,7 +25,6 @@
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
-#	define DECLARE_STAT
 #	define GREP_IF_REG(FUNC_SELF, FUNC_REG)   \
 		do {                               \
 			switch (ep->d_type) {      \
@@ -40,7 +39,7 @@
 
 #else
 
-#	define DECLARE_STAT
+#	include "globals.h"
 #	define GREP_IF_REG(FUNC_SELF, FUNC_REG)        \
 		do {                                    \
 			if (unlikely(stat(dir, &st)))   \
@@ -61,7 +60,6 @@
 		if (unlikely(!dp))                                                                                   \
 			return;                                                                                      \
 		char fulpath[MAX_PATH_LEN];                                                                          \
-		DECLARE_STAT;                                                                                        \
 		for (struct dirent * RESTRICT ep; (ep = readdir(dp));) {                                             \
 			GREP_IF_REG(FUNC_SELF, FUNC_REG);                                                            \
 CONT:;                                                                                                               \

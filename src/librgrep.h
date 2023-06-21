@@ -67,7 +67,7 @@ void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename);
 				}                                      \
 				break;                                 \
 			case 'c':                                      \
-				/* .clang-format */                     \
+				/* .clang-format */                    \
 				if ((filename)[2] == 'l'               \
 				    && ((filename)[3] == 'a')          \
 				    && ((filename)[4] == 'n')          \
