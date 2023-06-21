@@ -30,9 +30,6 @@ void find_cat(const char *RESTRICT dir, const size_t dlen)
 	DIR *RESTRICT dp = opendir(dir);
 	if (unlikely(!dp))
 		return;
-#ifndef _DIRENT_HAVE_D_TYPE
-	struct stat st;
-#endif /* _DIRENT_HAVE_D_TYPE */
 	char fulpath[MAX_PATH_LEN];
 	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE

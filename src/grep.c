@@ -5,6 +5,7 @@
 #include "config.h"
 #include "g_memmem.h"
 #include "g_table.h"
+#include "globals.h"
 #include "librgrep.h"
 #include "mmap.h"
 #include "unlocked_io.h"
@@ -81,19 +82,22 @@ void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const siz
 
 void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen)
 {
-	int fd;
+	/* unsigned char *p = malloc_open(filename, &sz); */
 	size_t sz;
-	unsigned char *p = mmap_open(filename, &sz, &fd);
-	if (unlikely(sz == MAX_FILE_SZ))
-		return;
-	if (unlikely(p == MAP_FAILED)) {
-		if (!sz)
-			return;
-		fgrep_err("Mmap failed", filename);
-		exit(1);
-		return;
-	}
-	const size_t filesz = sz;
+	MALLOC_OPEN(g_buf, filename, sz);
+	/* int fd; */
+	/* unsigned char *p = mmap_open(filename, &sz, &fd); */
+	/* if (unlikely(sz == MAX_FILE_SZ)) */
+	/* 	return; */
+	/* if (unlikely(p == MAP_FAILED)) { */
+	/* 	if (!sz) */
+	/* 		return; */
+	/* 	fgrep_err("Mmap failed", filename); */
+	/* 	exit(1); */
+	/* 	return; */
+	/* } */
+	/* const size_t filesz = sz; */
+	unsigned char *p = g_buf;
 	unsigned char *const filep = p;
 	const unsigned char *linep = filep;
 	const unsigned char *const pend = p + sz;
@@ -136,5 +140,6 @@ BREAK_FOR2:;
 		p = ppp;
 	}
 END:;
-	mmap_close(filep, filename, filesz, fd);
+	MALLOC_CLOSE(filep);
+	/* mmap_close(filep, filename, filesz, fd); */
 }

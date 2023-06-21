@@ -9,6 +9,7 @@
 #define MAX_NEEDLE_LEN	256
 #define MAX_FORKS	6
 #define MAX_FILE_SZ	209715200
+#define MIN_BUF_SZ	4096
 /* 200 MB */
 
 #endif /* CONFIG_DEF_H */

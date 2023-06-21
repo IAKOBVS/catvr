@@ -25,7 +25,7 @@
 
 #ifdef _DIRENT_HAVE_D_TYPE
 
-#	define DECLARE_STAT struct stat
+#	define DECLARE_STAT
 #	define GREP_IF_REG(FUNC_SELF, FUNC_REG)   \
 		do {                               \
 			switch (ep->d_type) {      \
