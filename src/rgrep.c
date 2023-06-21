@@ -61,8 +61,8 @@ INLINE void close_g_buf(void)
 		}                                                   \
 	} while (0)
 
-#define n argv[1]
-#define dir argv[2]
+#define needle (argv[1])
+#define dir (argv[2])
 
 int main(int argc, char **argv)
 {
@@ -72,8 +72,8 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	size_t nlen;
-	GET_NEEDLE_LEN(n, nlen);
-	init_memmem(n, nlen);
+	GET_NEEDLE_LEN(needle, nlen);
+	init_memmem(needle, nlen);
 	if (argc == 2)
 		goto GREP_ALL;
 	switch (dir[0]) {
@@ -87,9 +87,9 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (unlikely(S_ISREG(st.st_mode))) {
-			fgrep(n, dir, nlen, strlen(dir));
+			fgrep(needle, dir, nlen, strlen(dir));
 		} else if (S_ISDIR(st.st_mode)) {
-			find_fgrep(n, nlen, dir, strlen(dir));
+			find_fgrep(needle, nlen, dir, strlen(dir));
 		} else {
 			no_such_file(dir);
 			return 1;
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 		break;
 	case '\0':
 	GREP_ALL:;
-		find_fgrep(n, nlen, ".", 1);
+		find_fgrep(needle, nlen, ".", 1);
 		break;
 	}
 	close_g_buf();
