@@ -24,22 +24,35 @@
 static char g_ln[MAX_PATH_LEN];
 
 /* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action)         \
-	do {                                     \
-		if ((filename)[0] == '.')        \
-			switch ((filename)[1]) { \
-			case '.':                \
-			case '\0':               \
-				action;          \
-			}                        \
-	} while (0)
+#define IF_EXCLUDED_DO(filename, action) \
+	if ((filename)[0] == '.') {      \
+		switch ((filename)[1]) { \
+		case '.':                \
+		case '\0':               \
+			action;          \
+		}                        \
+	}
 
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
+#define DO_REG_EXCLUDE                                        \
+	const size_t flen = strlen(ep->d_name);               \
+	if (flen > 1) {                                       \
+		/* ignore .o files */                         \
+		if ((*((ep->d_name) + flen - 2) == '.')       \
+		    && (*((ep->d_name) + flen - 1) == 'o')) { \
+			break;                                \
+		}                                             \
+	}                                                     \
+	memcpy(g_ln, dir, dlen);                              \
+	*(g_ln + dlen) = '/';                                 \
+	memcpy(g_ln + dlen + 1, ep->d_name, flen);
+
 #define DO_REG                                                                                    \
 	do {                                                                                      \
-		g_lnlen = appendp(g_ln, dir, dlen, ep->d_name) - g_ln;                            \
+		DO_REG_EXCLUDE;                                                                   \
+		g_lnlen = dlen + flen + 1;                                                        \
 		if ((g_found = g_memmem(g_ln, g_lnlen, ptn, ptnlen))) {                           \
 			flockfile(stdout);                                                        \
 			fwrite(g_ln, 1, g_found - g_ln, stdout);                                  \
@@ -89,11 +102,13 @@ CONT:;
 	closedir(dp);
 }
 
-#define DO_REG_ALL                            \
-	do {                                  \
-		fwrite(dir, 1, dlen, stdout); \
-		putchar('/');                 \
-		puts(ep->d_name);             \
+#define DO_REG_ALL                                   \
+	do {                                         \
+		DO_REG_EXCLUDE;                      \
+		fwrite(dir, 1, dlen, stdout);        \
+		putchar('/');                        \
+		fwrite(ep->d_name, 1, flen, stdout); \
+		putchar('\n');                       \
 	} while (0)
 
 #define DO_DIR_ALL                                                                    \
