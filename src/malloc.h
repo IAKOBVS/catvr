@@ -32,7 +32,7 @@
 #define MALLOC_OPEN(filename, filesz)                                    \
 	do {                                                             \
 		int fd = open(filename, O_RDONLY);                       \
-		if (unlikely(fd < 0))                                    \
+		if (unlikely(fd == -1))                                  \
 			return;                                          \
 		CHECK_FILESZ(fd);                                        \
 		if (unlikely(!st.st_size))                               \
