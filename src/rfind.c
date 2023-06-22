@@ -36,7 +36,7 @@ static char g_ln[MAX_PATH_LEN];
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
-#define DO_REG_EXCLUDE                                        \
+#define DO_REG_EXCLUDE(flen)                                  \
 	const size_t flen = strlen(ep->d_name);               \
 	if (flen > 1) {                                       \
 		/* ignore .o files */                         \
@@ -51,7 +51,7 @@ static char g_ln[MAX_PATH_LEN];
 
 #define DO_REG                                                                                    \
 	do {                                                                                      \
-		DO_REG_EXCLUDE;                                                                   \
+		DO_REG_EXCLUDE(flen);                                                             \
 		g_lnlen = dlen + flen + 1;                                                        \
 		if ((g_found = g_memmem(g_ln, g_lnlen, ptn, ptnlen))) {                           \
 			flockfile(stdout);                                                        \
@@ -104,7 +104,7 @@ CONT:;
 
 #define DO_REG_ALL                                   \
 	do {                                         \
-		DO_REG_EXCLUDE;                      \
+		DO_REG_EXCLUDE(flen);                \
 		fwrite(dir, 1, dlen, stdout);        \
 		putchar('/');                        \
 		fwrite(ep->d_name, 1, flen, stdout); \
