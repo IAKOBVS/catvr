@@ -26,21 +26,21 @@ for cfile in $(echo *.c); do
 		esac
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
-			$compiler $@ "$cfile" -c -o "$base.o" $args
-			echo $compiler $@ "$cfile" -c -o "$base.o" $args
+			$compiler $@ $args "$cfile" -c
+			echo $compiler $@ $args "$cfile" -c
 		fi
 	} &
 done
 wait
 for m in $main; do
 	{
-		$compiler $@ "$m" -o "../bin/${m%.*}" ./*.o $args
-		echo $compiler $@ $m -o ${m%.*} ./*.o $args
+		$compiler $@ $args "$m" -o "../bin/${m%.*}" ./*.o
+		echo $compiler $@ $args $m -o ${m%.*} ./*.o
 	} &
 done
 {
-	$compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.o $args
-	echo $compiler $@ rfind.c -o ../bin/rfind g_memmem.o librgrep.o $args
+	$compiler $@ $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o
+	echo $compiler $@ $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o
 } &
 wait
 if [ ! -d "$scripts_dir" ]; then

@@ -7,7 +7,7 @@
 #include "g_table.h"
 #include "librgrep.h"
 #include "macros.h"
-#include "mmap.h"
+#include "malloc.h"
 #include "unlocked_io.h"
 
 void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);

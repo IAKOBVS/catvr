@@ -5,7 +5,7 @@
 #include "config.h"
 #include "g_table.h"
 #include "librgrep.h"
-#include "mmap.h"
+#include "malloc.h"
 #include "unlocked_io.h"
 
 void cat(const char *RESTRICT filename, const size_t flen);
