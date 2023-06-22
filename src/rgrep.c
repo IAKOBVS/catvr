@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 			stat_fail(dir);
 			return 1;
 		}
-		if (unlikely(S_ISREG(st.st_mode))) {
+		if (S_ISREG(st.st_mode)) {
 			fgrep(needle, dir, nlen, strlen(dir));
 		} else if (S_ISDIR(st.st_mode)) {
 			find_fgrep(needle, nlen, dir, strlen(dir));
