@@ -82,21 +82,8 @@ void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const siz
 
 void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen)
 {
-	/* unsigned char *p = malloc_open(filename, &sz); */
 	size_t sz;
 	MALLOC_OPEN(filename, sz);
-	/* int fd; */
-	/* unsigned char *p = mmap_open(filename, &sz, &fd); */
-	/* if (unlikely(sz == MAX_FILE_SZ)) */
-	/* 	return; */
-	/* if (unlikely(p == MAP_FAILED)) { */
-	/* 	if (!sz) */
-	/* 		return; */
-	/* 	fgrep_err("Mmap failed", filename); */
-	/* 	exit(1); */
-	/* 	return; */
-	/* } */
-	/* const size_t filesz = sz; */
 	unsigned char *p = g_buf;
 	unsigned char *const filep = p;
 	const unsigned char *linep = filep;
@@ -140,5 +127,4 @@ BREAK_FOR2:;
 		p = ppp;
 	}
 END:;
-	/* mmap_close(filep, filename, filesz, fd); */
 }

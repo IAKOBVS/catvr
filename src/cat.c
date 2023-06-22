@@ -14,14 +14,6 @@ void cat(const char *RESTRICT filename, const size_t flen)
 {
 	size_t sz;
 	MALLOC_OPEN(filename, sz);
-	/* int fd; */
-	/* unsigned char *p = mmap_open(filename, &sz, &fd); */
-	/* if (unlikely(sz >= MAX_FILE_SZ)) */
-	/* 	return; */
-	/* if (unlikely(p == MAP_FAILED)) */
-	/* 	return; */
-	/* const size_t filesz = sz; */
-	/* unsigned char *const filep = p; */
 	unsigned char *p = g_buf;
 	unsigned char *const pend = p + sz;
 	char numbuf[UINT_LEN];
@@ -68,5 +60,4 @@ void cat(const char *RESTRICT filename, const size_t flen)
 BREAK_FOR:;
 	}
 END:;
-	/* mmap_close(filep, filename, filesz, fd); */
 }
