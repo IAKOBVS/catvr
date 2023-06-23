@@ -12,7 +12,7 @@ elif [ -f /usr/bin/clang ]; then
 	compiler=clang
 else
 	echo 'gcc/clang not available'
-	return 1
+	exit 1
 fi
 mkdir -p ./bin
 if ! cd src; then

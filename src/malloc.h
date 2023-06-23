@@ -29,6 +29,16 @@
 #	define STAT_IF_EMPTY(fd)
 #endif /* _DIRENT_HAVE_D_TYPE */
 
+#define PROG_NAME "rgrep"
+
+#define MALLOC_DIE(p, filename)                                                    \
+	do {                                                                       \
+		if (unlikely(!p)) {                                                \
+			fprintf(stderr, PROG_NAME ":Can't malloc:%s\n", filename); \
+			exit(1);                                                   \
+		}                                                                  \
+	} while (0)
+
 #define MALLOC_OPEN(filename, filesz)                                    \
 	do {                                                             \
 		int fd = open(filename, O_RDONLY);                       \
@@ -57,10 +67,7 @@
 			} while ((size_t)st.st_size < g_bufsz);          \
 			free(g_buf);                                     \
 			g_buf = malloc(st.st_size);                      \
-			if (unlikely(!g_buf)) {                          \
-				fgrep_err("Can't malloc", filename);     \
-				exit(1);                                 \
-			}                                                \
+			MALLOC_DIE(g_buf, filename);                     \
 			g_bufsz = st.st_size;                            \
 		}                                                        \
 		filesz = st.st_size;                                     \
