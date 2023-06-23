@@ -13,9 +13,9 @@
 #include "malloc.h"
 #include "unlocked_io.h"
 
-void cat(const char *RESTRICT filename, const size_t flen);
+static INLINE void cat(const char *RESTRICT filename, const size_t flen);
 
-void cat(const char *RESTRICT filename, const size_t flen)
+static INLINE void cat(const char *RESTRICT filename, const size_t flen)
 {
 	size_t sz;
 	MALLOC_OPEN(filename, sz);

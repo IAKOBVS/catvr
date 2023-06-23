@@ -15,9 +15,12 @@
 #include "unlocked_io.h"
 
 static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
-
 NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
-NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen) { fgrep(needle, filename, nlen, flen); }
+
+NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen)
+{
+	fgrep(needle, filename, nlen, flen);
+}
 
 #define COUNT_LINE_NUM(NL)                                          \
 	do {                                                        \
