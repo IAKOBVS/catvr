@@ -40,6 +40,7 @@ static INLINE void *g_memmem(const void *RESTRICT h, size_t hlen, const void *RE
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
+/* memmem modified to use a global instead of a local table */
 static INLINE void *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen)
 {
 	if (hlen < nlen)

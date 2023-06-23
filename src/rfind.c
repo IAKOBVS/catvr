@@ -36,22 +36,16 @@ static char g_ln[MAX_PATH_LEN];
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
-#define DO_REG_EXCLUDE(flen)                                  \
-	const size_t flen = strlen(ep->d_name);               \
-	if (flen > 1) {                                       \
-		/* ignore .o files */                         \
-		if ((*((ep->d_name) + flen - 2) == '.')       \
-		    && (*((ep->d_name) + flen - 1) == 'o')) { \
-			break;                                \
-		}                                             \
-	}                                                     \
-	memcpy(g_ln, dir, dlen);                              \
-	*(g_ln + dlen) = '/';                                 \
-	memcpy(g_ln + dlen + 1, ep->d_name, flen);
+#define DO_REG_EXCLUDE(filename, flen)                   \
+	const size_t flen = strlen(filename);            \
+	IF_EXCLUDED_EXT_GOTO(filename, flen, goto CONT); \
+	memcpy(g_ln, dir, dlen);                         \
+	*(g_ln + dlen) = '/';                            \
+	memcpy(g_ln + dlen + 1, filename, flen);
 
-#define DO_REG                                                                                    \
+#define DO_REG(filename)                                                                          \
 	do {                                                                                      \
-		DO_REG_EXCLUDE(flen);                                                             \
+		DO_REG_EXCLUDE(filename, flen);                                                   \
 		g_lnlen = dlen + flen + 1;                                                        \
 		if ((g_found = g_memmem(g_ln, g_lnlen, ptn, ptnlen))) {                           \
 			flockfile(stdout);                                                        \
@@ -65,10 +59,10 @@ static char g_ln[MAX_PATH_LEN];
 		}                                                                                 \
 	} while (0)
 
-#define DO_DIR                                                                                 \
-	do {                                                                                   \
-		IF_EXCLUDED_DO(ep->d_name, goto CONT);                                         \
-		find(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath, ptn, ptnlen); \
+#define DO_DIR(filename)                                                                     \
+	do {                                                                                 \
+		IF_EXCLUDED_DO(filename, goto CONT);                                         \
+		find(fulpath, appendp(fulpath, dir, dlen, filename) - fulpath, ptn, ptnlen); \
 	} while (0)
 
 static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRICT ptn, const size_t ptnlen)
@@ -83,10 +77,10 @@ static void find(const char *RESTRICT dir, const size_t dlen, const char *RESTRI
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			DO_REG;
+			DO_REG(ep->d_name);
 			break;
 		case DT_DIR:
-			DO_DIR;
+			DO_DIR(ep->d_name);
 			break;
 		}
 #else
@@ -102,20 +96,21 @@ CONT:;
 	closedir(dp);
 }
 
-#define DO_REG_ALL                                   \
-	do {                                         \
-		DO_REG_EXCLUDE(flen);                \
-		fwrite(dir, 1, dlen, stdout);        \
-		putchar('/');                        \
-		fwrite(ep->d_name, 1, flen, stdout); \
-		putchar('\n');                       \
+#define DO_REG_ALL(filename)                                     \
+	do {                                                     \
+		DO_REG_EXCLUDE(filename, flen);                  \
+		IF_EXCLUDED_EXT_GOTO(filename, flen, goto CONT); \
+		fwrite(dir, 1, dlen, stdout);                    \
+		putchar('/');                                    \
+		fwrite(filename, 1, flen, stdout);               \
+		putchar('\n');                                   \
 	} while (0)
 
-#define DO_DIR_ALL                                                                    \
-	do {                                                                          \
-		IF_EXCLUDED_DO(ep->d_name, goto DO_DIR_BREAK__);                      \
-		find_all(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-DO_DIR_BREAK__:;                                                                      \
+#define DO_DIR_ALL(filename)                                                        \
+	do {                                                                        \
+		IF_EXCLUDED_DO(filename, goto DO_DIR_BREAK__);                      \
+		find_all(fulpath, appendp(fulpath, dir, dlen, filename) - fulpath); \
+DO_DIR_BREAK__:;                                                                    \
 	} while (0)
 
 static void find_all(const char *RESTRICT dir, const size_t dlen)
@@ -128,20 +123,21 @@ static void find_all(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			DO_REG_ALL;
+			DO_REG_ALL(ep->d_name);
 			break;
 		case DT_DIR:
-			DO_DIR_ALL;
+			DO_DIR_ALL(ep->d_name);
 			break;
 		}
 #else
 		if (unlikely(stat(dir, &st)))
 			continue;
 		if (S_ISREG(st.st_mode))
-			DO_REG;
+			DO_REG(filename);
 		else if (S_ISDIR(st.st_mode))
-			DO_DIR;
+			DO_DIR(filename);
 #endif /* _DIRENT_HAVE_D_TYPE */
+CONT:;
 	}
 	closedir(dp);
 }

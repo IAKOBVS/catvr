@@ -67,16 +67,19 @@ BREAK_FOR:;
 END:;
 }
 
-#define DO_REG                                                                   \
-	do {                                                                     \
-		IF_EXCLUDED_REG_GOTO(ep->d_name, goto CONT);                     \
-		cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+#define DO_REG(FUNC_REG)                                           \
+	do {                                                       \
+		IF_EXCLUDED_REG_GOTO(ep->d_name, goto CONT);       \
+		const size_t flen = strlen(ep->d_name);            \
+		IF_EXCLUDED_EXT_GOTO(ep->d_name, flen, goto CONT); \
+		append_len(fulpath, dir, dlen, ep->d_name, flen);  \
+		FUNC_REG(fulpath, dlen + flen);                    \
 	} while (0)
 
-#define DO_DIR                                                                        \
-	do {                                                                          \
-		IF_EXCLUDED_DIR_GOTO(ep->d_name, goto CONT);                          \
-		find_cat(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
+#define DO_DIR(FUNC_SELF)                                                              \
+	do {                                                                           \
+		IF_EXCLUDED_DIR_GOTO(ep->d_name, goto CONT);                           \
+		FUNC_SELF(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 	} while (0)
 
 void find_cat(const char *RESTRICT dir, const size_t dlen);
@@ -91,19 +94,19 @@ void find_cat(const char *RESTRICT dir, const size_t dlen)
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
-			DO_REG;
+			DO_REG(cat);
 			break;
 		case DT_DIR:
-			DO_DIR;
+			DO_DIR(find_cat);
 			break;
 		}
 #else
 		if (unlikely(stat(dir, &st)))
 			continue;
 		if (S_ISREG(st.st_mode))
-			DO_REG;
+			DO_REG(cat);
 		else if (S_ISDIR(st.st_mode))
-			DO_DIR;
+			DO_DIR(find_cat);
 #endif /* _DIRENT_HAVE_D_TYPE */
 CONT:;
 	}

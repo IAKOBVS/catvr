@@ -23,9 +23,37 @@
 #	define ANSI_RESET   ""
 #endif /* USE_ANSI_COLORS */
 
-void append(char *path, const char *dir, size_t dlen, const char *filename);
-char *appendp(char *path, const char *dir, size_t dlen, const char *filename);
 void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename);
+static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename);
+static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char *filename);
+static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename, size_t flen);
+
+static INLINE void append(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename)
+{
+	memcpy(path, dir, dlen);
+	*(path + dlen) = '/';
+	memcpy(path + dlen + 1, filename, dlen + 1);
+}
+
+static INLINE char *appendp(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename)
+{
+#if defined(HAS_STPCPY) && defined(HAS_MEMPCPY)
+	*(path = (char *)mempcpy(path, dir, dlen)) = '/';
+	return stpcpy(path + 1, filename);
+#else
+	memcpy(path, dir, dlen);
+	*(path + dlen) = '/';
+	dlen = strlen(filename);
+	return (char *)memcpy(path + dlen + 1, filename, dlen + 1) + dlen;
+#endif /* HAS_STPCPY */
+}
+
+static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename, size_t flen)
+{
+	memcpy(path, dir, dlen);
+	*(path + dlen) = '/';
+	memcpy(path + dlen + 1, filename, flen + 1);
+}
 
 /* Does not nul terminate */
 #define itoa_uint_pos(s, n, base, digits)               \
@@ -40,6 +68,18 @@ void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename);
 	} while (0)
 
 #define PRINT_LITERAL(s) fwrite((s), 1, sizeof(s) - 1, stdout)
+
+#define IF_EXCLUDED_EXT_GOTO(filename, flen, action)                   \
+	do {                                                           \
+		if (flen > 1) {                                        \
+			/* ignore .o files */                          \
+			if (*((filename) + flen - 2) == '.') {         \
+				if (*((filename) + flen - 1) == 'o') { \
+					action;                        \
+				}                                      \
+			}                                              \
+		}                                                      \
+	} while (0)
 
 #define IF_EXCLUDED_REG_GOTO(filename, action)                           \
 	do {                                                             \
