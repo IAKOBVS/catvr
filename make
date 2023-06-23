@@ -21,7 +21,7 @@ if ! cd src; then
 fi
 compile_echo()
 {
-	$@
+	$*
 	echo "$@"
 }
 for cfile in $(find . -type f -name '*.c' ! -name rgrep.c ! -name rfind.c); do
