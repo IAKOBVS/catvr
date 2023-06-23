@@ -14,17 +14,18 @@ else
 	echo 'gcc/clang not available'
 	return 1
 fi
-mkdir -p bin
-cd src || {
+mkdir -p ./bin
+if ! cd src; then
 	echo "Can't cd to ./src"
 	exit
+fi
+compile_echo()
+{
+	$@
+	echo "$@"
 }
-compile_echo() { $@; echo "$@"; }
-for cfile in $(echo ./*.c); do
+for cfile in $(find . -type f -name '*.c' ! -name rgrep.c ! -name rfind.c); do
 	{
-		case "$main rfind.c" in
-		*$cfile*) [ "$cfile" != grep.c ] && exit ;;
-		esac
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
 			compile_echo "$compiler $* $args $cfile -c"
@@ -32,12 +33,10 @@ for cfile in $(echo ./*.c); do
 	} &
 done
 wait
-rm rgrep.o
-rm rfind.o
 for m in $main; do
 	compile_echo "$compiler $* $args $m -o ../bin/${m%.*}" ./*.o &
 done
-	compile_echo "$compiler $* $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o" &
+compile_echo "$compiler $* $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o" &
 wait
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
