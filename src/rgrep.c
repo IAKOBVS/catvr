@@ -15,22 +15,22 @@
 #include "g_memmem.h"
 #include "globals.h"
 
-void stat_fail(const char *entry);
-void no_such_file(const char *entry);
-void init_g_buf(void);
-void close_g_buf(void);
+static NOINLINE void stat_fail(const char *entry);
+static NOINLINE void no_such_file(const char *entry);
+static INLINE void init_g_buf(void);
+static INLINE void close_g_buf(void);
 
-NOINLINE void stat_fail(const char *entry)
+static NOINLINE void stat_fail(const char *entry)
 {
 	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);
 }
 
-NOINLINE void no_such_file(const char *entry)
+static NOINLINE void no_such_file(const char *entry)
 {
 	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry);
 }
 
-INLINE void init_g_buf(void)
+static INLINE void init_g_buf(void)
 {
 	g_buf = malloc(MIN_BUF_SZ);
 	if (unlikely(!g_buf)) {
@@ -40,7 +40,7 @@ INLINE void init_g_buf(void)
 	g_bufsz = MIN_BUF_SZ;
 }
 
-INLINE void close_g_buf(void)
+static INLINE void close_g_buf(void)
 {
 	free(g_buf);
 }
