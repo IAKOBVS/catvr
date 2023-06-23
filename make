@@ -19,29 +19,25 @@ cd src || {
 	echo "Can't cd to ./src"
 	exit
 }
-for cfile in $(echo *.c); do
+compile_echo() { $@; echo "$@"; }
+for cfile in $(echo ./*.c); do
 	{
 		case "$main rfind.c" in
 		*$cfile*) [ "$cfile" != grep.c ] && exit ;;
 		esac
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
-			$compiler $@ $args "$cfile" -c
-			echo $compiler $@ $args "$cfile" -c
+			compile_echo "$compiler $* $args $cfile -c"
 		fi
 	} &
 done
 wait
+rm rgrep.o
+rm rfind.o
 for m in $main; do
-	{
-		$compiler $@ $args "$m" -o "../bin/${m%.*}" ./*.o
-		echo $compiler $@ $args $m -o ${m%.*} ./*.o
-	} &
+	compile_echo "$compiler $* $args $m -o ../bin/${m%.*}" ./*.o &
 done
-{
-	$compiler $@ $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o
-	echo $compiler $@ $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o
-} &
+	compile_echo "$compiler $* $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o" &
 wait
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
