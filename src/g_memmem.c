@@ -34,15 +34,15 @@
 #endif /* !HAS_MEMMEM */
 
 uint8_t g_mtable[256];
-void init_memmem(const char *RESTRICT ne, const int nlen);
+void init_memmem(const char *RESTRICT ne, const size_t nlen);
 void *g_memmem(const void *RESTRICT h, size_t hlen, const void *RESTRICT n, size_t nlen);
 
 #define hash2(p) (((size_t)(p)[0] - ((size_t)(p)[-1] << 3)) % 256)
 
-void init_memmem(const char *RESTRICT ne, const int nlen)
+void init_memmem(const char *RESTRICT ne, const size_t nlen)
 {
 	memset(g_mtable, 0, sizeof(g_mtable));
-	for (int i = 1; i < nlen - 1; i++)
+	for (unsigned int i = 1; i < nlen - 1; i++)
 		g_mtable[hash2(ne + i)] = i;
 }
 
