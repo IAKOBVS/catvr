@@ -14,7 +14,6 @@
 #include "find_grep.h"
 #include "g_memmem.h"
 #include "globals.h"
-#include "grep.h"
 
 void stat_fail(const char *entry);
 void no_such_file(const char *entry);
@@ -85,7 +84,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		if (S_ISREG(st.st_mode)) {
-			fgrep(needle, dir, nlen, strlen(dir));
+			fgrep_noinline(needle, dir, nlen, strlen(dir));
 		} else if (S_ISDIR(st.st_mode)) {
 			find_fgrep(needle, nlen, dir, strlen(dir));
 		} else {
