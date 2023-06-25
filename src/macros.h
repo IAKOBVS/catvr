@@ -18,13 +18,6 @@
 #		define HAS_PUTC_UNLOCKED
 #		define HAS_PUTCHAR_UNLOCKED
 #	endif /* _POSIX_C_SOURCE */
-#elif __GLIBC__ >= 2 && __GLIBC_MINOR__ <= 23
-#	ifdef _POSIX_C_SOURCE
-#		define HAS_GETC_UNLOCKED
-#		define HAS_GETCHAR_UNLOCKED
-#		define HAS_PUTC_UNLOCKED
-#		define HAS_PUTCHAR_UNLOCKED
-#	endif /* _POSIX_C_SOURCE */
 #elif __GLIBC__ >= 2 && __GLIBC_MINOR__ <= 19
 #	if defined(_SVID_SOURCE) || defined(_BSD_SOURCE)
 #		define HAS_GETC_UNLOCKED
@@ -32,6 +25,13 @@
 #		define HAS_PUTC_UNLOCKED
 #		define HAS_PUTCHAR_UNLOCKED
 #	endif /* _SVID_SOURCE || _BSD_SOURCE */
+#elif __GLIBC__ >= 2 && __GLIBC_MINOR__ <= 23
+#	ifdef _POSIX_C_SOURCE
+#		define HAS_GETC_UNLOCKED
+#		define HAS_GETCHAR_UNLOCKED
+#		define HAS_PUTC_UNLOCKED
+#		define HAS_PUTCHAR_UNLOCKED
+#	endif /* _POSIX_C_SOURCE */
 #endif /* GETC, GETCHAR, PUTC, PUTCHAR UNLOCKED */
 
 #if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 19
@@ -61,10 +61,10 @@
 #endif /* GETLINE, GETDELIM */
 
 #ifdef _GNU_SOURCE
+#	define HAS_FGETS_UNLOCKED
 #	define HAS_MEMMEM
 #	define HAS_STPCPY
 #	define HAS_STRCASESTR
-#	define HAS_FGETS_UNLOCKED
 #	define HAS_MEMPCPY
 #elif defined(__GLIBC__)
 #	if __GLIBC__ >= 2 && __GLIBC_MINOR__ >= 10 && _POSIX_C_SOURCE >= 200809

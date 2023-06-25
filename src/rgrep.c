@@ -4,16 +4,15 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
-#define PROG_NAME "rgrep"
-
 #include <stdlib.h>
-#include <sys/stat.h>
 
 #include "config.h"
 #include "find_cat.h"
 #include "find_grep.h"
 #include "g_memmem.h"
 #include "globals.h"
+
+#define PROG_NAME "rgrep"
 
 static NOINLINE void stat_fail(const char *entry);
 static NOINLINE void no_such_file(const char *entry);
