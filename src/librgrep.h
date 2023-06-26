@@ -73,13 +73,25 @@ static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, siz
 	do {                                                           \
 		if (flen > 1) {                                        \
 			/* ignore .o files */                          \
-			if (*((filename) + flen - 2) == '.') {         \
-				if (*((filename) + flen - 1) == 'o') { \
+			if (((filename)[(flen) - 2]) == '.') {         \
+				if (((filename)[(flen) - 1]) == 'o') { \
 					action;                        \
 				}                                      \
 			}                                              \
 		}                                                      \
 	} while (0)
+
+/*
+   ignored files:
+   .
+   ..
+   .clang-format
+   .eslintrc
+   .editorconfig
+   .jshintrc
+   .gitignore
+   .ignore
+*/
 
 #define IF_EXCLUDED_REG_GOTO(filename, action)                           \
 	do {                                                             \
@@ -173,6 +185,14 @@ static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, siz
 			}                                                \
 		}                                                        \
 	} while (0)
+
+/*
+   ignored directories:
+   .
+   ..
+   .git
+   .vscode
+*/
 
 #define IF_EXCLUDED_DIR_GOTO(filename, action)                 \
 	do {                                                   \
