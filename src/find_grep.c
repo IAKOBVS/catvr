@@ -14,8 +14,13 @@
 #include "malloc.h"
 #include "unlocked_io.h"
 
+#ifndef _DIRENT_HAVE_D_TYPE
+#	include "globals.h"
+#endif /* _DIRENT_HAVE_D_TYPE */
+
 static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
 NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
+void find_fgrep(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen);
 
 NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen)
 {
@@ -50,8 +55,8 @@ NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT f
 
 #else
 
-#	define GENERATE_LINE_NUM \
-#		define PRINT_LINE_NUM
+#	define GENERATE_LINE_NUM
+#	define PRINT_LINE_NUM
 
 #endif /* USE_LINE_NUMBER */
 
@@ -154,60 +159,32 @@ END:;
 		FUNC_SELF(needle, nlen, fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
 	} while (0)
 
+void find_fgrep(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen)
+{
+	DIR *RESTRICT dp = opendir(dir);
+	if (unlikely(!dp))
+		return;
+	char fulpath[MAX_PATH_LEN];
+	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE
-
-#	define GREP_IF_REG(FUNC_SELF, FUNC_REG)   \
-		do {                               \
-			switch (ep->d_type) {      \
-			case DT_REG:               \
-				DO_REG(FUNC_REG);  \
-				break;             \
-			case DT_DIR:               \
-				DO_DIR(FUNC_SELF); \
-				break;             \
-			}                          \
-		} while (0)
-
+		switch (ep->d_type) {
+		case DT_REG:
+			DO_REG(fgrep);
+			break;
+		case DT_DIR:
+			DO_DIR(find_fgrep);
+			break;
+		}
 #else
-
-#	include "globals.h"
-#	include "sys/stat.h"
-#	define GREP_IF_REG(FUNC_SELF, FUNC_REG)        \
-		do {                                    \
-			if (unlikely(stat(dir, &st)))   \
-				continue;               \
-			if (S_ISREG(st.st_mode))        \
-				DO_REG(FUNC_REG);       \
-			else if (S_ISDIR(g_st.st_mode)) \
-				DO_DIR(FUNC_SELF);      \
-		} while (0)
-
+		if (unlikely(stat(dir, &st)))
+			continue;
+		if (S_ISREG(st.st_mode))
+			DO_REG(fgrep);
+		else if (S_ISDIR(g_st.st_mode))
+			DO_DIR(find_fgrep);
 #endif /* _DIRENT_HAVE_D_TYPE */
-
-#define DEF_FIND_T(FUNC_SELF, FUNC_REG)                                                                              \
-	void FUNC_SELF(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen); \
-	void FUNC_SELF(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen)  \
-	{                                                                                                            \
-		DIR *RESTRICT dp = opendir(dir);                                                                     \
-		if (unlikely(!dp))                                                                                   \
-			return;                                                                                      \
-		char fulpath[MAX_PATH_LEN];                                                                          \
-		for (struct dirent * RESTRICT ep; (ep = readdir(dp));) {                                             \
-			GREP_IF_REG(FUNC_SELF, FUNC_REG);                                                            \
-CONT:;                                                                                                               \
-		}                                                                                                    \
-		closedir(dp);                                                                                        \
-		return;                                                                                              \
+CONT:;
 	}
-
-DEF_FIND_T(find_fgrep, fgrep)
-
-/* #define DO_REG(FUNC_REG)                                                                                    \ */
-/* 	do {                                                                                                \ */
-/* 		IF_EXCLUDED_REG_GOTO(ep->d_name, goto BREAK_DO_REG__);                                      \ */
-/* 		if (USE_LEN)                                                                                \ */
-/* 			FUNC_REG(needle, fulpath, nlen, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \ */
-/* 		else                                                                                        \ */
-/* 			FUNC_REG(needle, fulpath, 0, 0);                                                    \ */
-/* BREAK_DO_REG__:;                                                                                            \ */
-/* 	} while (0) */
+	closedir(dp);
+	return;
+}

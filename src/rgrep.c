@@ -97,4 +97,5 @@ GREP_ALL:;
 		break;
 	}
 	close_g_buf();
+	return 0;
 }
