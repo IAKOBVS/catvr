@@ -163,7 +163,7 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 
 #define IF_FIND_ALL                       \
 	do {                              \
-		if (argv[1][0] == '\0') { \
+		if (!argv[1][0]) {        \
 			find_all(".", 1); \
 			return 1;         \
 		}                         \

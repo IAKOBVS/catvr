@@ -46,11 +46,11 @@ static INLINE void close_g_buf(void)
 
 #define GET_NEEDLE_LEN(n, nlen)                   \
 	do {                                      \
-		if (n[1] == '\0')                 \
+		if (!n[1])                        \
 			nlen = 1;                 \
-		else if (n[2] == '\0')            \
+		else if (!n[2])                   \
 			nlen = 2;                 \
-		else if (n[3] == '\0')            \
+		else if (!n[3])                   \
 			nlen = 3;                 \
 		else                              \
 			nlen = 3 + strlen(n + 3); \
@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 		goto GREP_ALL;
 	switch (dir[0]) {
 	case '.':
-		if (unlikely(dir[1] == '\0'))
+		if (unlikely(!dir[1]))
 			goto GREP_ALL;
 	/* FALLTHROUGH */
 	default:
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 		}
 		break;
 	case '\0':
-GREP_ALL:;
+GREP_ALL:
 		find_fgrep(needle, nlen, ".", 1);
 		break;
 	}
