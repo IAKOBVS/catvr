@@ -93,6 +93,44 @@ static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, siz
 				/* . */                                  \
 				action;                                  \
 				break;                                   \
+			case 'e':                                        \
+				switch ((filename)[2]) {                 \
+				/* .eslintrc */                          \
+				case 's':                                \
+					if (((filename)[3] == 'l')       \
+					    && ((filename)[4] == 'i')    \
+					    && ((filename)[5] == 'n')    \
+					    && ((filename)[6] == 't')    \
+					    && ((filename)[7] == 'r')    \
+					    && ((filename)[8] == 'c'))   \
+						action;                  \
+					break;                           \
+					/* .editorconfig */              \
+				case 'd':                                \
+					if (((filename)[3] == 'i')       \
+					    && ((filename)[4] == 't')    \
+					    && ((filename)[5] == 'o')    \
+					    && ((filename)[6] == 'r')    \
+					    && ((filename)[7] == 'c')    \
+					    && ((filename)[8] == 'o')    \
+					    && ((filename)[9] == 'n')    \
+					    && ((filename)[10] == 'f')   \
+					    && ((filename)[11] == 'i')   \
+					    && ((filename)[12] == 'g'))  \
+						action;                  \
+				}                                        \
+				break;                                   \
+			case 'j':                                        \
+				/* .jshintrc */                          \
+				if (((filename)[2] == 's')               \
+				    && ((filename)[3] == 'h')            \
+				    && ((filename)[4] == 'i')            \
+				    && ((filename)[5] == 'n')            \
+				    && ((filename)[6] == 't')            \
+				    && ((filename)[7] == 'r')            \
+				    && ((filename)[8] == 'c'))           \
+					action;                          \
+				break;                                   \
 			case 'g':                                        \
 				if ((filename)[2] == 'i') {              \
 					/* .gitignore */                 \
