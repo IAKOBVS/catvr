@@ -105,7 +105,9 @@ static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filen
 	unsigned int dgts;
 	char numbuf[UINT_LEN];
 	char *numbufp;
-	for (unsigned char *lnstart, *pp, *ppp; (pp = g_memmem(p, sz, needle, nlen));) {
+	unsigned char *ppp;
+	unsigned char *pp;
+	for (unsigned char *lnstart; (pp = g_memmem(p, sz, needle, nlen));) {
 		lnstart = p;
 		p = pp;
 		while (p != filep) {
@@ -121,10 +123,8 @@ static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filen
 BREAK_FOR1:
 		ppp = pp + nlen;
 		for (;;) {
-			if (unlikely(ppp == pend)) {
-				PRINTLN;
-				goto END;
-			}
+			if (unlikely(ppp == pend))
+				goto END_PRINT;
 			switch (g_table[*ppp]) {
 			case NEWLINE:
 				++ppp;
@@ -139,7 +139,10 @@ BREAK_FOR2:;
 		sz -= ppp - lnstart;
 		p = ppp;
 	}
-END:;
+END:
+	return;
+END_PRINT:
+	PRINTLN;
 }
 
 #define DO_REG(FUNC_REG)                                           \
