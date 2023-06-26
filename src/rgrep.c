@@ -21,12 +21,12 @@ static INLINE void close_g_buf(void);
 
 static NOINLINE void stat_fail(const char *entry)
 {
-	fprintf(stderr, PROG_NAME ": %s: Stat failed\n", entry);
+	fprintf(stderr, PROG_NAME ":%s:Stat failed\n", entry);
 }
 
 static NOINLINE void no_such_file(const char *entry)
 {
-	fprintf(stderr, PROG_NAME ": %s : No such file or directory\n", entry);
+	fprintf(stderr, PROG_NAME ":%s:No such file or directory\n", entry);
 }
 
 static INLINE void init_g_buf(void)
