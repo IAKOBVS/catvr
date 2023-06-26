@@ -67,21 +67,6 @@ BREAK_FOR:;
 END:;
 }
 
-#define DO_REG(FUNC_REG)                                           \
-	do {                                                       \
-		IF_EXCLUDED_REG_GOTO(ep->d_name, goto CONT);       \
-		const size_t flen = strlen(ep->d_name);            \
-		IF_EXCLUDED_EXT_GOTO(ep->d_name, flen, goto CONT); \
-		append_len(fulpath, dir, dlen, ep->d_name, flen);  \
-		FUNC_REG(fulpath, dlen + flen);                    \
-	} while (0)
-
-#define DO_DIR(FUNC_SELF)                                                              \
-	do {                                                                           \
-		IF_EXCLUDED_DIR_GOTO(ep->d_name, goto CONT);                           \
-		FUNC_SELF(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath); \
-	} while (0)
-
 void find_cat(const char *RESTRICT dir, const size_t dlen);
 
 void find_cat(const char *RESTRICT dir, const size_t dlen)
@@ -90,13 +75,23 @@ void find_cat(const char *RESTRICT dir, const size_t dlen)
 	if (unlikely(!dp))
 		return;
 	char fulpath[MAX_PATH_LEN];
+	size_t flen;
 	for (struct dirent *RESTRICT ep; (ep = readdir(dp));) {
 #ifdef _DIRENT_HAVE_D_TYPE
 		switch (ep->d_type) {
 		case DT_REG:
+#	define DO_REG(FUNC_REG)                                   \
+		IF_EXCLUDED_REG_GOTO(ep->d_name, goto CONT);       \
+		flen = strlen(ep->d_name);                         \
+		IF_EXCLUDED_EXT_GOTO(ep->d_name, flen, goto CONT); \
+		append_len(fulpath, dir, dlen, ep->d_name, flen);  \
+		FUNC_REG(fulpath, dlen + flen);
 			DO_REG(cat);
 			break;
 		case DT_DIR:
+#	define DO_DIR(FUNC_SELF)                            \
+		IF_EXCLUDED_DIR_GOTO(ep->d_name, goto CONT); \
+		FUNC_SELF(fulpath, appendp(fulpath, dir, dlen, ep->d_name) - fulpath);
 			DO_DIR(find_cat);
 			break;
 		}

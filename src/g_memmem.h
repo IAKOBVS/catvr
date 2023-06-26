@@ -7,9 +7,9 @@
 #	endif
 #endif /* _GNU_SOURCE */
 
+#include "librgrep.h"
 #include <stdint.h>
 #include <string.h>
-#include "librgrep.h"
 
 #ifndef HAS_MEMMEM
 #	ifndef memmem
