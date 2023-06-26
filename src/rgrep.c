@@ -62,7 +62,6 @@ static INLINE void close_g_buf(void)
 int main(int argc, char **argv)
 {
 	init_g_buf();
-	setvbuf(stdout, NULL, _IOFBF, BUFSIZ);
 	if (argc == 1 || !argv[1][0]) {
 		find_cat(".", 1);
 		return 0;

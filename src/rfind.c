@@ -169,9 +169,12 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 		}                         \
 	} while (0)
 
+#define PATTERN_ (argv[1])
+#define DIR_ (argv[2])
+
 int main(int argc, char **argv)
 {
-	if (argc == 1 || !argv[1][0]) {
+	if (argc == 1 || (argc == 2 && !PATTERN_[0])) {
 		find_all(".", 1);
 		return 0;
 	}
@@ -182,16 +185,20 @@ int main(int argc, char **argv)
 	size_t dlen;
 	switch (argc) {
 	case 2:
-		ptnlen = init_ptn(ptnbuf, argv[1]);
+		ptnlen = init_ptn(ptnbuf, PATTERN_);
 		ptn = ptnbuf;
 		dir = ".";
 		dlen = 1;
 		break;
 	case 3:
-		ptnlen = init_ptn(ptnbuf, argv[1]);
-		ptn = ptnbuf;
-		dir = argv[2];
+		dir = DIR_;
 		dlen = strlen(dir);
+		if (!PATTERN_[0]) {
+			find_all(dir, dlen);
+			return 0;
+		}
+		ptnlen = init_ptn(ptnbuf, PATTERN_);
+		ptn = ptnbuf;
 		break;
 	default:
 		fputs("Usage: ./rfind <pattern> <dir>\ndir is PWD by default\n", stderr);
