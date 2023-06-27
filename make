@@ -36,7 +36,7 @@ wait
 for m in $main; do
 	compile_echo "$compiler $* $args $m -o ../bin/${m%.*}" ./*.o &
 done
-compile_echo "$compiler $* $args rfind.c -o ../bin/rfind g_memmem.o librgrep.o" &
+compile_echo "$compiler $* $args rfind.c -o ../bin/rfind g_memmem.o" &
 wait
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"

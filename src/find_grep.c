@@ -18,9 +18,10 @@
 #	include "globals.h"
 #endif /* _DIRENT_HAVE_D_TYPE */
 
+void find_fgrep(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen);
+
 static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
 NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen);
-void find_fgrep(const char *RESTRICT needle, const size_t nlen, const char *RESTRICT dir, const size_t dlen);
 
 NOINLINE void fgrep_noinline(const char *RESTRICT needle, const char *RESTRICT filename, const size_t nlen, const size_t flen)
 {
@@ -109,8 +110,7 @@ static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filen
 	unsigned char *pp;
 	for (unsigned char *lnstart; (pp = g_memmem(p, sz, needle, nlen));) {
 		lnstart = p;
-		p = pp;
-		while (p != filep) {
+		for (p = pp; p != filep; --p) {
 			switch (g_table[*p]) {
 			case NEWLINE:
 				++p;
@@ -118,11 +118,9 @@ static INLINE void fgrep(const char *RESTRICT needle, const char *RESTRICT filen
 			case REJECT:
 				goto END;
 			}
-			--p;
 		}
 BREAK_FOR1:
-		ppp = pp + nlen;
-		for (;;) {
+		for (ppp = pp + nlen;; ++ppp) {
 			if (unlikely(ppp == pend))
 				goto END_PRINT;
 			switch (g_table[*ppp]) {
@@ -132,7 +130,6 @@ BREAK_FOR1:
 			case REJECT:
 				goto END;
 			}
-			++ppp;
 		}
 BREAK_FOR2:;
 		PRINTLN;
