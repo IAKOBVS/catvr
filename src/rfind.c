@@ -23,16 +23,6 @@
 
 static char g_ln[MAX_PATH_LEN];
 
-/* skip . , .., .git, .vscode */
-#define IF_EXCLUDED_DO(filename, action) \
-	if ((filename)[0] == '.') {      \
-		switch ((filename)[1]) { \
-		case '.':                \
-		case '\0':               \
-			action;          \
-		}                        \
-	}
-
 #define PRINT_LITERAL(s) \
 	fwrite((s), 1, sizeof(s) - 1, stdout)
 
@@ -61,7 +51,7 @@ static char g_ln[MAX_PATH_LEN];
 
 #define DO_DIR(filename)                                                                     \
 	do {                                                                                 \
-		IF_EXCLUDED_DO(filename, goto CONT);                                         \
+		IF_EXCLUDED_DIR_GOTO(filename, goto CONT);                                   \
 		find(fulpath, appendp(fulpath, dir, dlen, filename) - fulpath, ptn, ptnlen); \
 	} while (0)
 
@@ -108,9 +98,8 @@ CONT:;
 
 #define DO_DIR_ALL(filename)                                                        \
 	do {                                                                        \
-		IF_EXCLUDED_DO(filename, goto DO_DIR_BREAK__);                      \
+		IF_EXCLUDED_DIR_GOTO(filename, goto CONT);                          \
 		find_all(fulpath, appendp(fulpath, dir, dlen, filename) - fulpath); \
-DO_DIR_BREAK__:;                                                                    \
 	} while (0)
 
 static void find_all(const char *RESTRICT dir, const size_t dlen)
