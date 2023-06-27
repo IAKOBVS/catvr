@@ -8,19 +8,12 @@
 #endif /* _GNU_SOURCE */
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-
-#include <fcntl.h>
 #include <unistd.h>
 
 #include "globals.h"
-
-/* #include "macros.h" */
-/* #include <stddef.h> */
-
-/* void *mmap_open(const char *RESTRICT filename, size_t *RESTRICT filesz, int *RESTRICT fd); */
-/* void mmap_close(void *RESTRICT p, const char *RESTRICT filename, size_t filesz, int fd); */
 
 #ifdef _DIRENT_HAVE_D_TYPE
 /* if d_type is not available, it already calls stat in find */

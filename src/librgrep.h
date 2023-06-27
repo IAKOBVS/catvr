@@ -23,7 +23,6 @@
 #	define ANSI_RESET   ""
 #endif /* USE_ANSI_COLORS */
 
-void fgrep_err(const char *RESTRICT msg, const char *RESTRICT filename);
 static INLINE void append(char *path, const char *dir, size_t dlen, const char *filename);
 static INLINE char *appendp(char *path, const char *dir, size_t dlen, const char *filename);
 static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, size_t dlen, const char *RESTRICT filename, size_t flen);
@@ -69,16 +68,16 @@ static INLINE void append_len(char *RESTRICT path, const char *RESTRICT dir, siz
 
 #define PRINT_LITERAL(s) fwrite((s), 1, sizeof(s) - 1, stdout)
 
-#define IF_EXCLUDED_EXT_GOTO(filename, flen, action)                   \
-	do {                                                           \
-		if (flen > 1) {                                        \
-			/* ignore .o files */                          \
-			if (((filename)[(flen) - 2]) == '.') {         \
-				if (((filename)[(flen) - 1]) == 'o') { \
-					action;                        \
-				}                                      \
-			}                                              \
-		}                                                      \
+#define IF_EXCLUDED_EXT_GOTO(filename, flen, action)                 \
+	do {                                                         \
+		if (flen > 1) {                                      \
+			/* ignore .o files */                        \
+			if (((filename)[(flen)-2]) == '.') {         \
+				if (((filename)[(flen)-1]) == 'o') { \
+					action;                      \
+				}                                    \
+			}                                            \
+		}                                                    \
 	} while (0)
 
 /*

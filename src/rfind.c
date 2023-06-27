@@ -170,7 +170,7 @@ static size_t init_ptn(char *RESTRICT dst, const char *RESTRICT src)
 	} while (0)
 
 #define PATTERN_ (argv[1])
-#define DIR_ (argv[2])
+#define DIR_	 (argv[2])
 
 int main(int argc, char **argv)
 {
