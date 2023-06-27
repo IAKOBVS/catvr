@@ -44,18 +44,6 @@ static INLINE void close_g_buf(void)
 	free(g_buf);
 }
 
-#define GET_NEEDLE_LEN(n, nlen)                   \
-	do {                                      \
-		if (!n[1])                        \
-			nlen = 1;                 \
-		else if (!n[2])                   \
-			nlen = 2;                 \
-		else if (!n[3])                   \
-			nlen = 3;                 \
-		else                              \
-			nlen = 3 + strlen(n + 3); \
-	} while (0)
-
 #define needle (argv[1])
 #define dir    (argv[2])
 
@@ -66,8 +54,7 @@ int main(int argc, char **argv)
 		find_cat(".", 1);
 		return 0;
 	}
-	size_t nlen;
-	GET_NEEDLE_LEN(needle, nlen);
+	size_t nlen = strlen(needle);
 	init_memmem(needle, nlen);
 	if (argc == 2)
 		goto GREP_ALL;
