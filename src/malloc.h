@@ -1,5 +1,5 @@
-#ifndef MMAP_DEF_H
-#define MMAP_DEF_H
+#ifndef MALLOC_DEF_H
+#define MALLOC_DEF_H
 
 #if defined(__GNUC__) || defined(__GLIBC__)
 #	ifndef _GNU_SOURCE
@@ -68,4 +68,4 @@
 		close(fd);                                               \
 	} while (0)
 
-#endif /* MMAP_DEF_H */
+#endif /* MALLOC_DEF_H */

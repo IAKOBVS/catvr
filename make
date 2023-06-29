@@ -2,9 +2,7 @@
 std=--std=c99
 flags='-Wall -Wextra -pedantic -Wshadow -Wstrict-prototypes -Wmissing-prototypes'
 args="$std $flags"
-main='
-rgrep.c
-'
+main=rgrep.c
 scripts_dir=$HOME/.local/bin/scripts
 if [ -f /usr/bin/gcc ]; then
 	compiler=gcc
@@ -24,7 +22,7 @@ compile_echo()
 	$*
 	echo "$@"
 }
-for cfile in $(find . -type f -name '*.c' ! -name rgrep.c ! -name rfind.c); do
+for cfile in $(find . -type f -name '*.c' ! -name "$main"); do
 	{
 		base=${cfile%.*}
 		if [ ! -f "$base.o" ] || test "$base.o" -ot "$cfile"; then
@@ -36,7 +34,6 @@ wait
 for m in $main; do
 	compile_echo "$compiler $* $args $m -o ../bin/${m%.*}" ./*.o &
 done
-compile_echo "$compiler $* $args rfind.c -o ../bin/rfind g_memmem.o" &
 wait
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
