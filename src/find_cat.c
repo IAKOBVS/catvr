@@ -85,7 +85,7 @@ void find_cat(const char *RESTRICT dir, const size_t dlen)
 		flen = strlen(ep->d_name);                         \
 		IF_EXCLUDED_EXT_GOTO(ep->d_name, flen, goto CONT); \
 		append_len(fulpath, dir, dlen, ep->d_name, flen);  \
-		FUNC_REG(fulpath, dlen + flen);
+		FUNC_REG(fulpath, dlen + flen + 1);
 			DO_REG(cat);
 			break;
 		case DT_DIR:

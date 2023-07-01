@@ -148,7 +148,7 @@ END_PRINT:
 		flen = strlen(ep->d_name);                         \
 		IF_EXCLUDED_EXT_GOTO(ep->d_name, flen, goto CONT); \
 		append_len(fulpath, dir, dlen, ep->d_name, flen);  \
-		FUNC_REG(needle, fulpath, nlen, dlen + flen);      \
+		FUNC_REG(needle, fulpath, nlen, dlen + flen + 1);  \
 	} while (0)
 
 #define DO_DIR(FUNC_SELF)                                                                            \
