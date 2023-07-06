@@ -31,10 +31,7 @@ for cfile in $(find . -type f -name '*.c' ! -name "$main"); do
 	} &
 done
 wait
-for m in $main; do
-	compile_echo "$compiler $* $args $m -o ../bin/${m%.*}" ./*.o &
-done
-wait
+compile_echo "$compiler $* $args $main -o ../bin/${main%.*}" ./*.o
 if [ ! -d "$scripts_dir" ]; then
 	echo "$scripts_dir does not exist!"
 	echo 'Set a directory in which to store the executable'
