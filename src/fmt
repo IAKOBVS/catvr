@@ -1,2 +1,3 @@
 #!/bin/sh
-clang-format -i --style=file:.clang-format -- *.c *.h
+[ -f .clang-format ] && fmt=clang-format || fmt=$HOME/.clang-format
+clang-format -i --style=file:"$fmt" -- *.c *.h
